@@ -23,6 +23,7 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
             <!-- Logo ve Başlık -->
@@ -40,8 +41,16 @@
                             VerticalAlignment="Center"
                             TextChanged="OnSearchTextChanged"/>
 
-            <!-- Tema Değiştir -->
+            <!-- Ayarlar -->
             <Button Grid.Column="2" 
+                    Margin="0,0,8,0"
+                    ToolTipService.ToolTip="Ayarlar"
+                    Click="OnSettingsClick">
+                <FontIcon Glyph="&#xE713;" FontSize="16"/>
+            </Button>
+
+            <!-- Tema Değiştir -->
+            <Button Grid.Column="3" 
                     Margin="0,0,8,0"
                     ToolTipService.ToolTip="Tema Değiştir"
                     Click="OnThemeButtonClick">
@@ -49,7 +58,7 @@
             </Button>
 
             <!-- Yenile -->
-            <Button Grid.Column="3"
+            <Button Grid.Column="4"
                     Style="{StaticResource AccentButtonStyle}"
                     Click="OnRefreshClick"
                     ToolTipService.ToolTip="Yenile">
@@ -117,7 +126,10 @@
             </Grid>
 
             <!-- Orta Panel - Profil Listesi -->
-            <Grid Grid.Column="1" Padding="16">
+            <Grid Grid.Column="1" Padding="16"
+                  AllowDrop="True"
+                  DragOver="OnDragOver"
+                  Drop="OnDrop">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
@@ -133,6 +145,29 @@
                           SelectionMode="Single"
                           DoubleTapped="OnProfileDoubleTapped"
                           SelectionChanged="OnProfileSelectionChanged"/>
+
+                <!-- Drag & Drop Overlay -->
+                <Border x:Name="DragDropOverlay"
+                        Grid.Row="0" Grid.RowSpan="2"
+                        Background="{ThemeResource AccentFillColorDefaultBrush}"
+                        Opacity="0"
+                        IsHitTestVisible="False"
+                        CornerRadius="8"
+                        BorderBrush="{ThemeResource AccentFillColorDefaultBrush}"
+                        BorderThickness="3">
+                    <StackPanel HorizontalAlignment="Center" 
+                                VerticalAlignment="Center"
+                                Spacing="16">
+                        <FontIcon Glyph="&#xE896;" 
+                                  FontSize="48" 
+                                  Foreground="White"/>
+                        <TextBlock Text="RDP dosyalarını buraya sürükleyin" 
+                                   FontSize="16" 
+                                   FontWeight="SemiBold"
+                                   Foreground="White"
+                                   HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
             </Grid>
 
             <!-- Sağ Panel - Detay -->

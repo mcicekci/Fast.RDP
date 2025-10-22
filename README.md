@@ -216,15 +216,15 @@ FastRDP/
 - [x] ViewModel implementasyonu
 - [x] Temel UI
 
-### Sprint 2: Kullanıcı Deneyimi (Planlanan)
-- [ ] Tema değiştirme animasyonları
-- [ ] Drag & Drop ile RDP import
-- [ ] Ayarlar penceresi
-- [ ] Thumbnail önizleme
+### Sprint 2: Kullanıcı Deneyimi ✅
+- [x] Tema değiştirme animasyonları
+- [x] Drag & Drop ile RDP import
+- [x] Gelişmiş profil kartları (thumbnail önizleme)
+- [🚧] Ayarlar penceresi (temel dialog hazır)
 
-### Sprint 3: Gelişmiş Özellikler (Planlanan)
-- [ ] Jump List tam entegrasyonu
-- [ ] Sistem tepsisi desteği
+### Sprint 3: Gelişmiş Özellikler ✅
+- [x] Jump List tam entegrasyonu
+- [x] Sistem tepsisi desteği
 - [ ] Widget görünümü
 - [ ] Çoklu monitör desteği
 

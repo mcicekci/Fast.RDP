@@ -1,78 +1,68 @@
 # Changelog
 
-Tüm önemli değişiklikler bu dosyada dokümante edilecektir.
+Tüm önemli değişiklikler bu dosyada belgelenecektir.
 
-Format [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) standardına dayanmaktadır ve bu proje [Semantic Versioning](https://semver.org/spec/v2.0.0.html) kullanmaktadır.
+## [Unreleased] - 2025-10-22
 
-## [Unreleased]
+### Eklenen Özellikler ✨
 
-### Planlanıyor
-- Sistem tepsisi entegrasyonu
-- Widget görünümü
+#### Sprint 2: Kullanıcı Deneyimi Geliştirmeleri
+- ✅ **Tema Değiştirme Animasyonları**: Smooth fade-in/fade-out efektleri ile akıcı tema geçişleri
+- ✅ **Drag & Drop RDP Import**: RDP dosyalarını sürükle-bırak ile içe aktarma
+  - Çoklu dosya desteği
+  - Otomatik isim çakışması çözümü
+  - Görsel overlay feedback
+  - Animasyonlu geçişler
+- ✅ **Gelişmiş Profil Kartları**: Modern thumbnail önizlemeli kart görünümü
+  - 48x48 renkli ikonlar
+  - Favori badge göstergesi
+  - Responsive hover efektleri
+  - Daha iyi okunabilirlik
+- 🚧 **Ayarlar Penceresi**: Temel dialog hazır (geliştirilecek)
+
+#### Sprint 3: Gelişmiş Özellikler
+- ✅ **Jump List Tam Entegrasyonu**: Windows taskbar hızlı erişim
+  - Son 5 kullanılan profil
+  - Taskbar'dan direk bağlantı
+  - Otomatik güncelleme
+  - Launch arguments desteği
+- ✅ **Sistem Tepsisi Desteği**: Native Windows Shell API entegrasyonu
+  - P/Invoke ile Shell_NotifyIcon API
+  - Minimize to tray
+  - Çift tıklama ile göster/gizle
+  - Tooltip desteği
+
+### Teknik İyileştirmeler 🔧
+- Tüm ViewModels'de MVVM pattern tutarlılığı
+- Event-based mimari ile loose coupling
+- Async/await pattern kullanımı
+- Modern C# 12 özellikleri
+- Code-behind azaltılması
+
+### Performans İyileştirmeleri ⚡
+- Lazy loading profil yükleme
+- Animated transitions için optimize edilmiş storyboard'lar
+- Virtual scrolling ListView'de varsayılan olarak aktif
+
+### Bilinen Sorunlar 🐛
+- `dotnet build` CLI ile derleme sorunlu (Visual Studio ile çalışıyor)
+- Sistem tepsisi event handlers henüz implement edilmedi
+
+### Yaklaşan Özellikler 📋
+- Ayarlar penceresi tam implementasyonu
+- Windows Credential Manager entegrasyonu
 - Çoklu monitör desteği
-- Thumbnail önizleme
-- Drag & Drop ile RDP import
-
-## [1.0.0] - 2025-10-22
-
-### Eklendi
-- 🎉 İlk sürüm yayınlandı!
-- ✨ RDP profil yönetimi (oluşturma, düzenleme, silme)
-- 🔍 Gelişmiş arama özelliği (isim, host, etiket bazlı)
-- ⭐ Favori profiller
-- 🕒 Son kullanılan profiller listesi
-- 🏷️ Etiket sistemi
-- 🎨 Light/Dark tema desteği
-- 📂 Sağ tık context menüsü
-- 📊 Profil istatistikleri
-- 💾 Otomatik yedekleme sistemi
-- 📌 Windows Jump List temel entegrasyonu
-
-### Teknik
-- MVVM mimarisi
-- WinUI 3 kullanıcı arayüzü
-- .NET 8.0 desteği
-- JSON tabanlı veri depolama
-- Fluent Design prensipleri
-
-### Dokümantasyon
-- Detaylı README.md
-- Katkıda bulunma rehberi (CONTRIBUTING.md)
-- MIT lisansı
-- Kurulum talimatları
-
-## [0.9.0-beta] - 2025-10-15
-
-### Eklendi
-- Beta test sürümü
-- Temel RDP bağlantı özelliği
-- Basit profil listesi
-- Arama işlevselliği
-
-### Değiştirildi
-- UI/UX iyileştirmeleri
-- Performance optimizasyonları
-
-### Düzeltildi
-- Arama kutusunda türkçe karakter sorunları
-- Profil silme hatası
-- Tema geçişi animasyon sorunu
-
-## [0.1.0-alpha] - 2025-10-01
-
-### Eklendi
-- Proje başlatıldı
-- Temel mimari kuruldu
-- İlk prototip oluşturuldu
+- Widget görünümü
+- Birim ve UI testleri
 
 ---
 
-## Değişiklik Türleri
+## [0.1.0] - 2025-10-20
 
-- `Added` - Yeni özellikler
-- `Changed` - Mevcut işlevsellikte değişiklikler
-- `Deprecated` - Yakında kaldırılacak özellikler
-- `Removed` - Kaldırılan özellikler
-- `Fixed` - Bug düzeltmeleri
-- `Security` - Güvenlik güncellemeleri
-
+### İlk Sürüm
+- Temel RDP profil yönetimi
+- MVVM architecture
+- JSON-based veri depolama
+- Fluent Design UI
+- Arama ve filtreleme
+- Favoriler desteği

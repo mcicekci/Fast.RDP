@@ -9,7 +9,7 @@ namespace FastRDP
     /// </summary>
     public partial class App : Application
     {
-        private Window m_window;
+        private MainWindow m_window;
 
         public App()
         {
@@ -23,6 +23,32 @@ namespace FastRDP
         {
             m_window = new MainWindow();
             m_window.Activate();
+
+            // Jump List'ten gelen argümanları kontrol et
+            HandleLaunchArguments(args.Arguments);
+        }
+
+        /// <summary>
+        /// Launch argümanlarını işle (Jump List bağlantıları için)
+        /// </summary>
+        private void HandleLaunchArguments(string arguments)
+        {
+            if (string.IsNullOrWhiteSpace(arguments))
+                return;
+
+            try
+            {
+                // "connect:profileId" formatında gelen argümanı parse et
+                if (arguments.StartsWith("connect:"))
+                {
+                    var profileId = arguments.Substring("connect:".Length);
+                    m_window?.ConnectToProfileById(profileId);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Launch argümanı işlenirken hata: {ex.Message}");
+            }
         }
     }
 

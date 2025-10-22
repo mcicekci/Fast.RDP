@@ -1,14 +1,18 @@
 using System;
 using System.Linq;
+using System.IO;
+using System.Collections.Generic;
 using FastRDP.Models;
 using FastRDP.Services;
 using FastRDP.ViewModels;
+using FastRDP.Views;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using WinRT.Interop;
 using Microsoft.UI.Windowing;
 using Windows.Graphics;
+using Windows.ApplicationModel.DataTransfer;
 
 namespace FastRDP
 {
@@ -16,6 +20,8 @@ namespace FastRDP
     {
         private readonly RdpFileService _rdpFileService;
         private readonly SettingsService _settingsService;
+        private readonly JumpListService _jumpListService;
+        private readonly SystemTrayService _systemTrayService;
         private RdpProfile _selectedProfile;
 
         public MainWindow()
@@ -30,9 +36,35 @@ namespace FastRDP
             
             _settingsService = new SettingsService();
             _rdpFileService = new RdpFileService(_settingsService.LoadSettings().RdpFolder);
+            _jumpListService = new JumpListService(_settingsService);
+            _systemTrayService = new SystemTrayService(this);
+            
+            // Event'leri bağla
+            this.Closed += OnWindowClosed;
             
             ApplyTheme();
             LoadProfiles();
+            
+            // Jump List'i güncelle
+            _ = UpdateJumpListAsync();
+            
+            // Sistem tepsisi ayarlarını kontrol et
+            InitializeSystemTray();
+        }
+
+        private void InitializeSystemTray()
+        {
+            var settings = _settingsService.LoadSettings();
+            if (settings.MinimizeToTray)
+            {
+                _systemTrayService.AddTrayIcon("FastRDP - RDP Bağlantı Yöneticisi");
+                _systemTrayService.OnDoubleClick += (s, e) => _systemTrayService.ShowWindow();
+            }
+        }
+
+        private void OnWindowClosed(object sender, WindowEventArgs args)
+        {
+            _systemTrayService?.Dispose();
         }
 
         private void SetWindowSize(int width, int height)
@@ -101,11 +133,7 @@ namespace FastRDP
                 ProfilesList.Items.Clear();
                 foreach (var profile in profiles.OrderBy(p => p.Name))
                 {
-                    var item = new ListViewItem
-                    {
-                        Content = CreateProfileDisplay(profile),
-                        Tag = profile
-                    };
+                    var item = CreateProfileCardItem(profile);
                     ProfilesList.Items.Add(item);
                 }
 
@@ -117,42 +145,120 @@ namespace FastRDP
             }
         }
 
-        private StackPanel CreateProfileDisplay(RdpProfile profile)
+        private ListViewItem CreateProfileCardItem(RdpProfile profile)
         {
-            var panel = new StackPanel { Spacing = 4, Padding = new Thickness(8) };
-            
+            var grid = new Grid
+            {
+                Padding = new Thickness(12),
+                CornerRadius = new Microsoft.UI.Xaml.CornerRadius(8),
+                Margin = new Thickness(4)
+            };
+
+            grid.Background = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"];
+            grid.BorderBrush = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"];
+            grid.BorderThickness = new Thickness(1);
+
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            // Icon/Thumbnail Border
+            var iconBorder = new Border
+            {
+                Width = 48,
+                Height = 48,
+                CornerRadius = new Microsoft.UI.Xaml.CornerRadius(8),
+                Margin = new Thickness(0, 0, 12, 0)
+            };
+            iconBorder.Background = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["AccentFillColorDefaultBrush"];
+
+            var icon = new FontIcon
+            {
+                Glyph = "\uE968",
+                FontSize = 24,
+                Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.White),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            iconBorder.Child = icon;
+            Grid.SetColumn(iconBorder, 0);
+            grid.Children.Add(iconBorder);
+
+            // Profil Bilgileri Panel
+            var infoPanel = new StackPanel
+            {
+                VerticalAlignment = VerticalAlignment.Center,
+                Spacing = 4
+            };
+
             var nameText = new TextBlock
             {
                 Text = profile.Name,
                 FontSize = 15,
-                FontWeight = new Windows.UI.Text.FontWeight { Weight = 600 }
+                FontWeight = new Windows.UI.Text.FontWeight { Weight = 600 },
+                TextTrimming = TextTrimming.CharacterEllipsis
             };
-            
+
             var hostText = new TextBlock
             {
                 Text = profile.Host,
                 FontSize = 13,
-                Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextFillColorSecondaryBrush"]
+                Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+                TextTrimming = TextTrimming.CharacterEllipsis
             };
-            
+
             var userText = new TextBlock
             {
-                Text = profile.Username,
+                Text = string.IsNullOrEmpty(profile.Username) ? "" : profile.Username,
                 FontSize = 12,
-                Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextFillColorTertiaryBrush"]
+                Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextFillColorTertiaryBrush"],
+                TextTrimming = TextTrimming.CharacterEllipsis
             };
 
-            panel.Children.Add(nameText);
-            panel.Children.Add(hostText);
+            infoPanel.Children.Add(nameText);
+            infoPanel.Children.Add(hostText);
             if (!string.IsNullOrEmpty(profile.Username))
             {
-                panel.Children.Add(userText);
+                infoPanel.Children.Add(userText);
             }
 
-            return panel;
+            Grid.SetColumn(infoPanel, 1);
+            grid.Children.Add(infoPanel);
+
+            // Favori Badge
+            if (profile.Favorite)
+            {
+                var favoriteGrid = new Grid
+                {
+                    VerticalAlignment = VerticalAlignment.Top,
+                    Margin = new Thickness(8, 0, 0, 0)
+                };
+
+                var favoriteIcon = new FontIcon
+                {
+                    Glyph = "\uE735",
+                    FontSize = 16,
+                    Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 255, 185, 0))
+                };
+
+                favoriteGrid.Children.Add(favoriteIcon);
+                Grid.SetColumn(favoriteGrid, 2);
+                grid.Children.Add(favoriteGrid);
+            }
+
+            var item = new ListViewItem
+            {
+                Content = grid,
+                Tag = profile,
+                HorizontalContentAlignment = HorizontalAlignment.Stretch,
+                Padding = new Thickness(0),
+                Margin = new Thickness(0, 0, 0, 8)
+            };
+
+            return item;
         }
 
-        private void OnThemeButtonClick(object sender, RoutedEventArgs e)
+        private async void OnThemeButtonClick(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -164,9 +270,49 @@ namespace FastRDP
                     ? ElementTheme.Light 
                     : ElementTheme.Dark;
 
+                // Fade out animasyonu
                 if (Content is FrameworkElement element)
                 {
+                    var storyboard = new Microsoft.UI.Xaml.Media.Animation.Storyboard();
+                    var fadeOut = new Microsoft.UI.Xaml.Media.Animation.DoubleAnimation
+                    {
+                        From = 1.0,
+                        To = 0.8,
+                        Duration = new Duration(TimeSpan.FromMilliseconds(150)),
+                        EasingFunction = new Microsoft.UI.Xaml.Media.Animation.QuadraticEase 
+                        { 
+                            EasingMode = Microsoft.UI.Xaml.Media.Animation.EasingMode.EaseOut 
+                        }
+                    };
+
+                    Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTarget(fadeOut, element);
+                    Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTargetProperty(fadeOut, "Opacity");
+                    storyboard.Children.Add(fadeOut);
+
+                    storyboard.Begin();
+                    await System.Threading.Tasks.Task.Delay(150);
+
+                    // Tema değiştir
                     element.RequestedTheme = newTheme;
+
+                    // Fade in animasyonu
+                    var storyboard2 = new Microsoft.UI.Xaml.Media.Animation.Storyboard();
+                    var fadeIn = new Microsoft.UI.Xaml.Media.Animation.DoubleAnimation
+                    {
+                        From = 0.8,
+                        To = 1.0,
+                        Duration = new Duration(TimeSpan.FromMilliseconds(150)),
+                        EasingFunction = new Microsoft.UI.Xaml.Media.Animation.QuadraticEase 
+                        { 
+                            EasingMode = Microsoft.UI.Xaml.Media.Animation.EasingMode.EaseIn 
+                        }
+                    };
+
+                    Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTarget(fadeIn, element);
+                    Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTargetProperty(fadeIn, "Opacity");
+                    storyboard2.Children.Add(fadeIn);
+
+                    storyboard2.Begin();
                 }
 
                 var settings = _settingsService.LoadSettings();
@@ -198,11 +344,7 @@ namespace FastRDP
                 ProfilesList.Items.Clear();
                 foreach (var profile in filtered.OrderBy(p => p.Name))
                 {
-                    var item = new ListViewItem
-                    {
-                        Content = CreateProfileDisplay(profile),
-                        Tag = profile
-                    };
+                    var item = CreateProfileCardItem(profile);
                     ProfilesList.Items.Add(item);
                 }
 
@@ -230,11 +372,7 @@ namespace FastRDP
                     ProfilesList.Items.Clear();
                     foreach (var profile in filtered)
                     {
-                        var item = new ListViewItem
-                        {
-                            Content = CreateProfileDisplay(profile),
-                            Tag = profile
-                        };
+                        var item = CreateProfileCardItem(profile);
                         ProfilesList.Items.Add(item);
                     }
 
@@ -292,10 +430,47 @@ namespace FastRDP
                 _settingsService.UpdateProfile(profile);
                 
                 LoadProfiles();
+                
+                // Jump List'i güncelle
+                _ = UpdateJumpListAsync();
             }
             catch (Exception ex)
             {
                 ShowError("Bağlantı hatası: " + ex.Message);
+            }
+        }
+
+        public void ConnectToProfileById(string profileId)
+        {
+            try
+            {
+                var profiles = _settingsService.LoadProfiles();
+                var profile = profiles.FirstOrDefault(p => p.Id == profileId);
+                
+                if (profile != null)
+                {
+                    ConnectToProfile(profile);
+                }
+                else
+                {
+                    ShowError("Profil bulunamadı: " + profileId);
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowError("Profil bağlantısı başlatılamadı: " + ex.Message);
+            }
+        }
+
+        private async System.Threading.Tasks.Task UpdateJumpListAsync()
+        {
+            try
+            {
+                await _jumpListService.UpdateJumpListAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Jump List güncellenemedi: {ex.Message}");
             }
         }
 
@@ -355,6 +530,135 @@ namespace FastRDP
             {
                 ShowError("Yedekleme hatası: " + ex.Message);
             }
+        }
+
+        private async void OnSettingsClick(object sender, RoutedEventArgs e)
+        {
+            // Ayarlar dialog'u göster
+            var dialog = new ContentDialog
+            {
+                Title = "Ayarlar",
+                Content = "Ayarlar penceresi geliştirilme aşamasında...\n\nŞu anda mevcut özellikler:\n- Tema değiştirme (üst bardaki buton)\n- Drag & Drop ile RDP import\n- Jump List entegrasyonu\n- Sistem tepsisi desteği\n- Gelişmiş profil kartları",
+                CloseButtonText = "Tamam",
+                XamlRoot = this.Content.XamlRoot
+            };
+            await dialog.ShowAsync();
+        }
+
+        private void OnDragOver(object sender, DragEventArgs e)
+        {
+            e.AcceptedOperation = DataPackageOperation.Copy;
+
+            if (e.DataView.Contains(StandardDataFormats.StorageItems))
+            {
+                e.DragUIOverride.Caption = "RDP dosyasını ekle";
+                e.DragUIOverride.IsCaptionVisible = true;
+                e.DragUIOverride.IsContentVisible = true;
+                e.DragUIOverride.IsGlyphVisible = true;
+
+                // Overlay'i göster
+                ShowDragDropOverlay(true);
+            }
+        }
+
+        private async void OnDrop(object sender, DragEventArgs e)
+        {
+            // Overlay'i gizle
+            ShowDragDropOverlay(false);
+
+            if (e.DataView.Contains(StandardDataFormats.StorageItems))
+            {
+                try
+                {
+                    var items = await e.DataView.GetStorageItemsAsync();
+                    var importedCount = 0;
+                    var errors = new List<string>();
+
+                    foreach (var item in items)
+                    {
+                        if (item is Windows.Storage.StorageFile file)
+                        {
+                            if (Path.GetExtension(file.Path).ToLower() == ".rdp")
+                            {
+                                try
+                                {
+                                    // Dosyayı RDP klasörüne kopyala
+                                    var targetPath = Path.Combine(
+                                        _settingsService.LoadSettings().RdpFolder, 
+                                        file.Name
+                                    );
+
+                                    // Hedef klasörün var olduğundan emin ol
+                                    Directory.CreateDirectory(Path.GetDirectoryName(targetPath));
+
+                                    // Dosya zaten varsa farklı isim kullan
+                                    if (File.Exists(targetPath))
+                                    {
+                                        var fileName = Path.GetFileNameWithoutExtension(file.Name);
+                                        var extension = Path.GetExtension(file.Name);
+                                        var counter = 1;
+                                        
+                                        while (File.Exists(targetPath))
+                                        {
+                                            targetPath = Path.Combine(
+                                                _settingsService.LoadSettings().RdpFolder,
+                                                $"{fileName}_{counter}{extension}"
+                                            );
+                                            counter++;
+                                        }
+                                    }
+
+                                    File.Copy(file.Path, targetPath, false);
+                                    importedCount++;
+                                }
+                                catch (Exception ex)
+                                {
+                                    errors.Add($"{file.Name}: {ex.Message}");
+                                }
+                            }
+                        }
+                    }
+
+                    // Profilleri yeniden yükle
+                    if (importedCount > 0)
+                    {
+                        LoadProfiles();
+                        ShowInfo($"{importedCount} RDP dosyası başarıyla içe aktarıldı!");
+                    }
+
+                    if (errors.Count > 0)
+                    {
+                        ShowError($"Bazı dosyalar içe aktarılamadı:\n{string.Join("\n", errors)}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    ShowError("Dosya içe aktarma hatası: " + ex.Message);
+                }
+            }
+        }
+
+        private async void ShowDragDropOverlay(bool show)
+        {
+            if (DragDropOverlay == null) return;
+
+            var storyboard = new Microsoft.UI.Xaml.Media.Animation.Storyboard();
+            var animation = new Microsoft.UI.Xaml.Media.Animation.DoubleAnimation
+            {
+                To = show ? 0.15 : 0,
+                Duration = new Duration(TimeSpan.FromMilliseconds(200)),
+                EasingFunction = new Microsoft.UI.Xaml.Media.Animation.QuadraticEase
+                {
+                    EasingMode = Microsoft.UI.Xaml.Media.Animation.EasingMode.EaseInOut
+                }
+            };
+
+            Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTarget(animation, DragDropOverlay);
+            Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTargetProperty(animation, "Opacity");
+            storyboard.Children.Add(animation);
+            storyboard.Begin();
+
+            await System.Threading.Tasks.Task.Delay(200);
         }
 
         private async void ShowError(string message)

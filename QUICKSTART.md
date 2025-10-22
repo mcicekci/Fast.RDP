@@ -1,268 +1,174 @@
-# ⚡ FastRDP - Hızlı Başlangıç Rehberi
+# 🚀 FastRDP Hızlı Başlangıç Kılavuzu
 
-Bu rehber, FastRDP'yi 5 dakikada kullanmaya başlamanız için hazırlanmıştır.
+Bu kılavuz, FastRDP'yi hızlıca çalıştırmanız için gerekli adımları içerir.
 
-## 🎯 3 Adımda Başlayın
+## 📦 Gereksinimler
 
-### 1️⃣ Projeyi Açın
+- Windows 10 version 1809 (Build 17763) veya üzeri
+- .NET 8.0 Runtime
+- Visual Studio 2022 (geliştirme için)
+
+## 🏃‍♂️ Hızlı Başlangıç
+
+### 1. Projeyi Klonlayın
 
 ```bash
-# Repository'i klonlayın
 git clone https://github.com/mcicekci/Fast.RDP.git
 cd Fast.RDP
+```
 
-# Visual Studio ile açın
+### 2. Visual Studio ile Açın
+
+```bash
 start FastRDP.sln
 ```
 
-### 2️⃣ Derleyin ve Çalıştırın
+> **Not**: Bu bir WinUI 3 projesidir. `dotnet build` yerine Visual Studio kullanmanız önerilir.
 
-Visual Studio'da:
-- `F5` tuşuna basın veya
-- Üstteki yeşil ▶️ butonuna tıklayın
+### 3. Çalıştırın
 
-Komut satırından:
-```bash
-dotnet build
-dotnet run
-```
+Visual Studio'da `F5` tuşuna basın veya "Hata Ayıklama Başlat" butonuna tıklayın.
 
-### 3️⃣ İlk Profilinizi Oluşturun
+## 🎯 Temel Kullanım
+
+### Yeni Profil Ekleme
 
 1. Sol panelde **"Yeni Profil"** butonuna tıklayın
-2. Formu doldurun:
-   - **Bağlantı Adı**: Test Sunucusu
-   - **Host**: 192.168.1.100
+2. Gerekli bilgileri doldurun
 3. **"Kaydet"** butonuna tıklayın
-4. Profili çift tıklayarak bağlanın! 🎉
 
-## 📋 Temel Kullanım
+### RDP Dosyasını İçe Aktarma
 
-### Profil Yönetimi
+**Yöntem 1: Drag & Drop** 🆕
+- Mevcut .rdp dosyalarınızı ana pencereye sürükleyip bırakın
+- Dosyalar otomatik olarak içe aktarılır
 
-```
-➕ Yeni Profil Oluştur
-├─ Sol panelde "Yeni Profil" butonuna tıkla
-└─ Formu doldur ve kaydet
+**Yöntem 2: Manuel Kopyalama**
+- RDP dosyalarınızı `Data/profiles` klasörüne kopyalayın
+- "Yenile" butonuna tıklayın
 
-✏️ Profil Düzenle
-├─ Profili seç
-├─ Sağ tıkla → "Düzenle"
-└─ Değişiklikleri kaydet
+### Bağlantı Kurma
 
-❌ Profil Sil
-├─ Profili seç
-├─ Sağ tıkla → "Sil"
-└─ Onayla
+**Çift Tıklama**: Profilin üzerine çift tıklayın
 
-⭐ Favorilere Ekle
-├─ Profili seç
-└─ Sağ tıkla → "Favorilere Ekle"
-```
+**Sağ Panel**: Profili seçin → "Bağlan" butonuna tıklayın
 
-### Hızlı Bağlantı
+**Jump List** 🆕: Windows taskbar'da FastRDP ikonuna sağ tıklayın → Son kullanılan profillerden birini seçin
 
-**Yöntem 1**: Çift tık
-```
-Liste → Profili çift tıkla → Bağlan
-```
+### Tema Değiştirme 🆕
 
-**Yöntem 2**: Sağ panel
-```
-Profil seç → Sağ panel → "Bağlan" butonu
-```
+Üst bardaki **"Tema Değiştir"** butonuna (🌙) tıklayın. Smooth animasyonla tema değişecektir!
 
-**Yöntem 3**: Context menu
-```
-Sağ tık → "Bağlan"
-```
+### Sistem Tepsisi 🆕
 
-### Arama ve Filtreleme
+Pencereyi kapatın ve sistem tepsisinden (notification area) erişmeye devam edin:
+- Çift tıklayarak pencereyi açın/kapatın
+- Uygulama arka planda çalışmaya devam eder
 
-**Arama:**
-```
-Üst bar → Arama kutusu → İsim/host/etiket yaz
-```
+## 🎨 Yeni Özellikler
 
-**Filtreleme:**
-```
-Sol panel → Filtre seç:
-├─ Tümü
-├─ Favoriler
-└─ Son Kullanılanlar
-```
+### Gelişmiş Profil Kartları
 
-## 🎨 Tema Değiştirme
+Profiller artık modern kartlarla gösteriliyor:
+- 🎨 Renkli ikonlar
+- ⭐ Favori badge'leri
+- 📊 Hover efektleri
+- 📝 Daha iyi bilgi görünümü
 
-```
-Üst sağ → 🌙 ikonu → Tıkla
-```
+### Jump List Entegrasyonu
 
-## 🔑 Klavye Kısayolları
+Windows taskbar'dan hızlı erişim:
+1. Taskbar'da FastRDP ikonuna **sağ tıklayın**
+2. Son kullanılan 5 profil görünür
+3. Doğrudan bağlanmak için profili seçin
 
-| Kısayol | Açıklama |
-|---------|----------|
-| `Ctrl + N` | Yeni profil |
-| `Ctrl + F` | Arama |
-| `Enter` | Bağlan |
-| `Delete` | Sil |
-| `F5` | Yenile |
+### Drag & Drop Import
 
-## 📂 Dosya Konumları
+RDP dosyalarını kolayca içe aktarın:
+1. Windows Explorer'dan .rdp dosyalarını seçin
+2. FastRDP penceresine sürükleyin
+3. Dosyalar otomatik olarak eklenir
 
-```
-FastRDP/
-└── Data/
-    ├── profiles/           ← RDP dosyaları burada
-    ├── settings.json       ← Ayarlar
-    └── profiles.json       ← Profil metadata
-```
+## ⌨️ Klavye Kısayolları
 
-## 🚀 Gelişmiş Özellikler
+| Kısayol | Aksiyon |
+|---------|---------|
+| `Enter` | Seçili profile bağlan |
+| `Ctrl+F` | Arama kutusuna odaklan |
+| `Del` | Seçili profili sil |
+| `F5` | Profilleri yenile |
 
-### RDP Dosyalarını Import Etme
+## 🔧 İpuçları
 
-**Yöntem 1**: Manuel kopyalama
-```bash
-# Mevcut RDP dosyalarınızı kopyalayın
-copy *.rdp FastRDP\Data\profiles\
+### Profil Organize Etme
 
-# Uygulamada "Yenile" butonuna basın
-```
-
-**Yöntem 2**: Drag & Drop (Gelecek sürümde)
-```
-RDP dosyasını uygulamaya sürükle bırak
-```
+- **Etiketler** kullanarak profilleri kategorize edin
+- **Favoriler** özelliği ile sık kullanılanları işaretleyin
+- **Arama** ile hızlıca bulun (isim, host veya etiket)
 
 ### Yedekleme
 
-```
-Sol panel → "Yedekle" butonu → Otomatik yedek oluşturulur
-```
+Sol paneldeki **"Yedekle"** butonu ile profillerinizi yedekleyin. Yedek dosyası `Data/` klasörüne kaydedilir.
 
-Yedek konumu:
-```
-Data/profiles_backup_YYYYMMDD_HHMMSS.json
-```
+### Ayarlar 🚧
+
+Üst bardaki **"Ayarlar"** butonuna tıklayarak:
+- Tema seçenekleri
+- Otomatik yedekleme
+- Başlangıçta çalıştırma
+- Ve daha fazlası... (yakında gelecek özellikler)
 
 ## 🐛 Sorun Giderme
 
-### Sorun: Uygulama açılmıyor
+### Uygulama Başlamıyor
 
-**Çözüm:**
-```bash
-# .NET 8.0 yüklü mü kontrol edin
-dotnet --version
+1. .NET 8.0 Runtime'ın yüklü olduğundan emin olun
+2. Windows sürümünüzü kontrol edin (minimum 1809)
+3. Visual Studio'dan çalıştırmayı deneyin
 
-# NuGet paketlerini restore edin
-dotnet restore
+### RDP Dosyaları Görünmüyor
 
-# Temiz build
-dotnet clean
-dotnet build
+1. **"Yenile"** butonuna tıklayın
+2. `Data/profiles` klasörünün var olduğundan emin olun
+3. RDP dosyalarının `.rdp` uzantılı olduğunu kontrol edin
+
+### Tema Değişmiyor
+
+1. Uygulamayı yeniden başlatın
+2. `Data/settings.json` dosyasını kontrol edin
+3. Gerekirse dosyayı silin (varsayılan ayarlar oluşturulur)
+
+## 📚 Daha Fazla Bilgi
+
+- [Mimari Dokümantasyonu](ARCHITECTURE.md)
+- [Katkıda Bulunma Rehberi](CONTRIBUTING.md)
+- [Değişiklik Geçmişi](CHANGELOG.md)
+
+## 💡 İleri Düzey Kullanım
+
+### Profil Metadata Düzenleme
+
+`Data/profiles.json` dosyasını doğrudan düzenleyerek:
+- Toplu değişiklikler yapın
+- Profilleri başka bir bilgisayara taşıyın
+- Yedekten geri yükleyin
+
+### Jump List Özelleştirme
+
+MainViewModel'de `UpdateJumpListAsync()` metodunu düzenleyerek:
+- Gösterilen profil sayısını değiştirin
+- Favori profilleri vurgulayın
+- Özel kategor iler ekleyin
+
+### Tema Özelleştirme
+
+`App.xaml` içinde tema renklerini özelleştirin:
+```xml
+<SolidColorBrush x:Key="AccentFillColorDefaultBrush" Color="#0078D4"/>
 ```
-
-### Sorun: RDP bağlantısı açılmıyor
-
-**Çözüm:**
-1. Windows'ta mstsc.exe çalışıyor mu kontrol edin
-2. Host adresinin doğru olduğunu kontrol edin
-3. Firewall ayarlarını kontrol edin
-
-### Sorun: Profiller görünmüyor
-
-**Çözüm:**
-```bash
-# Data klasörünü kontrol edin
-dir Data\profiles
-
-# Varsa profiles.json'ı silin
-del Data\profiles.json
-
-# Yeniden tarayın
-# Uygulamada F5 (Yenile)
-```
-
-## 💡 İpuçları
-
-### 1. Etiketleme Stratejisi
-
-```
-🏢 İş
-  ├─ ERP
-  ├─ Veritabanı
-  └─ Web Server
-
-🏠 Ev
-  ├─ NAS
-  └─ Medya
-
-☁️ Bulut
-  ├─ Azure
-  └─ AWS
-```
-
-### 2. İsimlendirme Kuralları
-
-```
-✅ İYİ:
-- "ERP Sunucusu - Üretim"
-- "Web01 - Test Ortamı"
-- "Database - Yedek"
-
-❌ KÖTÜ:
-- "server1"
-- "test"
-- "192.168.1.100"
-```
-
-### 3. Çözünürlük Ayarları
-
-```
-Fullscreen    → Tam ekran çalışma
-1920x1080     → Pencere modunda
-Auto          → Otomatik boyutlandırma (önerilen)
-```
-
-## 📊 Örnek Profil
-
-```json
-{
-  "name": "ERP Ana Sunucu",
-  "host": "erp.company.local",
-  "username": "admin",
-  "domain": "COMPANY",
-  "resolution": "1920x1080",
-  "tags": ["ERP", "Üretim", "Kritik"],
-  "notes": "7/24 çalışır durumda olmalı",
-  "favorite": true
-}
-```
-
-## 🎓 Video Eğitimler
-
-*(Gelecekte eklenecek)*
-
-- [ ] Temel kullanım
-- [ ] Profil yönetimi
-- [ ] İleri özellikler
-- [ ] Sorun giderme
-
-## 📞 Yardım
-
-Sorunlarla karşılaşırsanız:
-
-1. **Dokümantasyon**: [README.md](README.md)
-2. **Mimari**: [ARCHITECTURE.md](ARCHITECTURE.md)
-3. **Derleme**: [BUILDING.md](BUILDING.md)
-4. **Issues**: [GitHub Issues](https://github.com/mcicekci/Fast.RDP/issues)
-
-## 🎉 Tebrikler!
-
-FastRDP'yi kullanmaya başladınız! Daha fazla özellik için tam dokümantasyonu okuyun.
 
 ---
 
-**İyi çalışmalar! 🚀**
+**🎉 Artık FastRDP'yi kullanmaya hazırsınız!**
 
+Sorularınız için: [GitHub Issues](https://github.com/mcicekci/Fast.RDP/issues)
