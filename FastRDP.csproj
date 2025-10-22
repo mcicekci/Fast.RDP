@@ -18,6 +18,9 @@
   <ItemGroup>
     <Content Include="Assets\**\*.*" />
     <Content Include="Data\**\*.*" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\fastRDP-logo.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>

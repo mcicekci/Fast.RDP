@@ -2,7 +2,9 @@
 
 Modern ve hızlı bir RDP (Remote Desktop Protocol) bağlantı yönetim uygulaması. WinUI 3 ile geliştirilmiş, Fluent Design prensiplerini benimseyen masaüstü uygulaması.
 
-![FastRDP Logo](Assets/app.ico)
+<p align="center">
+  <img src="Assets/fastRDP-logo.png" alt="FastRDP Logo" width="400"/>
+</p>
 
 ## ✨ Özellikler
 
