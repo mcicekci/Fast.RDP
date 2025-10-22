@@ -48,6 +48,41 @@
                           HorizontalAlignment="Stretch"/>
             </StackPanel>
 
+            <!-- Multi-Monitor Desteği -->
+            <StackPanel Spacing="8">
+                <TextBlock Text="Çoklu Monitör" FontWeight="SemiBold"/>
+                <CheckBox Content="Çoklu monitör kullan"
+                          IsChecked="{x:Bind ViewModel.UseMultiMonitor, Mode=TwoWay}">
+                    <CheckBox.ContentTemplate>
+                        <DataTemplate>
+                            <StackPanel>
+                                <TextBlock Text="Çoklu monitör kullan"/>
+                                <TextBlock Text="Uzak masaüstünü birden fazla monitöre yayar"
+                                           FontSize="11"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                           Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </CheckBox.ContentTemplate>
+                </CheckBox>
+                <CheckBox Content="Tüm monitörleri kullan"
+                          IsChecked="{x:Bind ViewModel.UseAllMonitors, Mode=TwoWay}"
+                          IsEnabled="{x:Bind ViewModel.UseMultiMonitor, Mode=OneWay}"
+                          Margin="20,0,0,0">
+                    <CheckBox.ContentTemplate>
+                        <DataTemplate>
+                            <StackPanel>
+                                <TextBlock Text="Tüm monitörleri kullan"/>
+                                <TextBlock Text="Oturumu tüm monitörlere tam ekran yayar"
+                                           FontSize="11"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                           Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </CheckBox.ContentTemplate>
+                </CheckBox>
+            </StackPanel>
+
             <!-- Etiketler -->
             <StackPanel Spacing="8">
                 <TextBlock Text="Etiketler" FontWeight="SemiBold"/>
@@ -85,7 +120,8 @@
                                             MinHeight="0"
                                             Background="Transparent"
                                             Foreground="White"
-                                            CommandParameter="{x:Bind}"/>
+                                            Click="OnRemoveTagClick"
+                                            Tag="{x:Bind}"/>
                                 </StackPanel>
                             </Border>
                         </DataTemplate>

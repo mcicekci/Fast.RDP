@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using FastRDP.Models;
 
 namespace FastRDP.Services
@@ -35,7 +36,7 @@ namespace FastRDP.Services
         /// <summary>
         /// Yeni RDP profili oluşturur ve dosyaya kaydeder
         /// </summary>
-        public void CreateRdpFile(RdpProfile profile)
+        public async Task CreateRdpFileAsync(RdpProfile profile)
         {
             if (string.IsNullOrWhiteSpace(profile.File))
             {
@@ -45,13 +46,21 @@ namespace FastRDP.Services
             var filePath = Path.Combine(_profilesPath, profile.File);
             var lines = BuildRdpFileContent(profile);
             
-            File.WriteAllLines(filePath, lines, Encoding.UTF8);
+            await File.WriteAllLinesAsync(filePath, lines, Encoding.UTF8);
+        }
+
+        /// <summary>
+        /// Yeni RDP profili oluşturur (senkron - eski versiyon için)
+        /// </summary>
+        public void CreateRdpFile(RdpProfile profile)
+        {
+            Task.Run(() => CreateRdpFileAsync(profile)).GetAwaiter().GetResult();
         }
 
         /// <summary>
         /// Mevcut RDP dosyasını günceller
         /// </summary>
-        public void UpdateRdpFile(RdpProfile profile)
+        public async Task UpdateRdpFileAsync(RdpProfile profile)
         {
             var filePath = Path.Combine(_profilesPath, profile.File);
             
@@ -61,7 +70,15 @@ namespace FastRDP.Services
             }
 
             var lines = BuildRdpFileContent(profile);
-            File.WriteAllLines(filePath, lines, Encoding.UTF8);
+            await File.WriteAllLinesAsync(filePath, lines, Encoding.UTF8);
+        }
+
+        /// <summary>
+        /// Mevcut RDP dosyasını günceller (senkron - eski versiyon için)
+        /// </summary>
+        public void UpdateRdpFile(RdpProfile profile)
+        {
+            Task.Run(() => UpdateRdpFileAsync(profile)).GetAwaiter().GetResult();
         }
 
         /// <summary>
@@ -80,7 +97,7 @@ namespace FastRDP.Services
         /// <summary>
         /// Belirtilen RDP dosyasını okur ve profil bilgilerini döner
         /// </summary>
-        public RdpProfile ReadRdpFile(string fileName)
+        public async Task<RdpProfile> ReadRdpFileAsync(string fileName)
         {
             var filePath = Path.Combine(_profilesPath, fileName);
             
@@ -89,7 +106,7 @@ namespace FastRDP.Services
                 throw new FileNotFoundException($"RDP dosyası bulunamadı: {filePath}");
             }
 
-            var lines = File.ReadAllLines(filePath);
+            var lines = await File.ReadAllLinesAsync(filePath);
             var profile = new RdpProfile { File = fileName };
 
             foreach (var line in lines)
@@ -101,14 +118,30 @@ namespace FastRDP.Services
         }
 
         /// <summary>
+        /// Belirtilen RDP dosyasını okur (senkron - eski versiyon için)
+        /// </summary>
+        public RdpProfile ReadRdpFile(string fileName)
+        {
+            return Task.Run(() => ReadRdpFileAsync(fileName)).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
         /// Tüm RDP dosyalarını tarar
+        /// </summary>
+        public async Task<List<string>> ScanRdpFilesAsync()
+        {
+            await Task.Run(() => EnsureDirectoryExists());
+            
+            var files = await Task.Run(() => Directory.GetFiles(_profilesPath, "*.rdp", SearchOption.TopDirectoryOnly));
+            return files.Select(Path.GetFileName).ToList();
+        }
+
+        /// <summary>
+        /// Tüm RDP dosyalarını tarar (senkron - eski versiyon için)
         /// </summary>
         public List<string> ScanRdpFiles()
         {
-            EnsureDirectoryExists();
-            
-            var files = Directory.GetFiles(_profilesPath, "*.rdp", SearchOption.TopDirectoryOnly);
-            return files.Select(Path.GetFileName).ToList();
+            return Task.Run(() => ScanRdpFilesAsync()).GetAwaiter().GetResult();
         }
 
         /// <summary>
@@ -210,6 +243,32 @@ namespace FastRDP.Services
                     break;
             }
 
+            // Multi-monitor desteği
+            if (profile.UseMultiMonitor || profile.UseAllMonitors)
+            {
+                lines.Add("use multimon:i:1");
+                
+                if (profile.UseAllMonitors)
+                {
+                    // Tüm monitörleri kullan
+                    lines.Add("span monitors:i:1");
+                    lines.Add("screen mode id:i:2"); // Fullscreen gerekli
+                }
+                else
+                {
+                    // Sadece multi-monitor desteği
+                    lines.Add("span monitors:i:0");
+                }
+                
+                // Multi-monitor ayarları
+                lines.Add("selectedmonitors:s:");
+            }
+            else
+            {
+                lines.Add("use multimon:i:0");
+                lines.Add("span monitors:i:0");
+            }
+
             return lines;
         }
 
@@ -243,6 +302,44 @@ namespace FastRDP.Services
                     else
                     {
                         profile.Username = value;
+                    }
+                    break;
+                case "screen mode id":
+                    if (int.TryParse(value, out int screenMode))
+                    {
+                        switch (screenMode)
+                        {
+                            case 1:
+                                profile.Resolution = "auto";
+                                break;
+                            case 2:
+                                profile.Resolution = "fullscreen";
+                                break;
+                        }
+                    }
+                    break;
+                case "desktopwidth":
+                    if (int.TryParse(value, out int width))
+                    {
+                        profile.Resolution = $"{width}x{profile.Resolution?.Split('x')[1] ?? "768"}";
+                    }
+                    break;
+                case "desktopheight":
+                    if (int.TryParse(value, out int height))
+                    {
+                        profile.Resolution = $"{profile.Resolution?.Split('x')[0] ?? "1024"}x{height}";
+                    }
+                    break;
+                case "use multimon":
+                    if (int.TryParse(value, out int useMultiMon) && useMultiMon == 1)
+                    {
+                        profile.UseMultiMonitor = true;
+                    }
+                    break;
+                case "span monitors":
+                    if (int.TryParse(value, out int spanMonitors) && spanMonitors == 1)
+                    {
+                        profile.UseAllMonitors = true;
                     }
                     break;
             }

@@ -9,7 +9,7 @@ namespace FastRDP
     /// </summary>
     public partial class App : Application
     {
-        private MainWindow m_window;
+        public MainWindow m_window;
 
         public App()
         {

@@ -10,12 +10,20 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
+        <!-- InfoBar -->
+        <InfoBar x:Name="NotificationInfoBar"
+                 Grid.Row="0"
+                 IsOpen="False"
+                 IsClosable="True"
+                 Margin="8,8,8,0"/>
+
         <!-- Üst Bar -->
-        <Grid Grid.Row="0" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" 
+        <Grid Grid.Row="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" 
               Padding="16,12" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" 
               BorderThickness="0,0,0,1">
             <Grid.ColumnDefinitions>
@@ -35,11 +43,17 @@
             <!-- Arama Kutusu -->
             <AutoSuggestBox Grid.Column="1" 
                             x:Name="SearchBox"
-                            PlaceholderText="Profil, host veya etiket ara..."
+                            PlaceholderText="İsim, host, kullanıcı, domain, etiket ara..."
                             QueryIcon="Find"
                             Margin="24,0"
                             VerticalAlignment="Center"
-                            TextChanged="OnSearchTextChanged"/>
+                            TextChanged="OnSearchTextChanged">
+                <AutoSuggestBox.Description>
+                    <TextBlock Text="Gelişmiş arama: Tüm profil bilgilerinde arama yapılır" 
+                               FontSize="10"
+                               Foreground="{ThemeResource TextFillColorTertiaryBrush}"/>
+                </AutoSuggestBox.Description>
+            </AutoSuggestBox>
 
             <!-- Ayarlar -->
             <Button Grid.Column="2" 
@@ -70,7 +84,7 @@
         </Grid>
 
         <!-- Ana İçerik -->
-        <Grid Grid.Row="1">
+        <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="200"/>
                 <ColumnDefinition Width="*"/>
@@ -121,6 +135,22 @@
                                 <TextBlock Text="Yedekle"/>
                             </StackPanel>
                         </Button>
+
+                        <MenuFlyoutSeparator Margin="0,8"/>
+
+                        <Button Click="OnImportRdpClick"
+                                HorizontalAlignment="Stretch">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE8B5;" FontSize="14"/>
+                                <TextBlock Text="RDP İçe Aktar"/>
+                            </StackPanel>
+                        </Button>
+
+                        <TextBlock Text="veya RDP dosyalarını sürükle-bırak"
+                                   FontSize="11"
+                                   Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,8,0,0"/>
                     </StackPanel>
                 </ScrollViewer>
             </Grid>
@@ -247,7 +277,7 @@
         </Grid>
 
         <!-- Alt Bar -->
-        <Grid Grid.Row="2" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" 
+        <Grid Grid.Row="3" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" 
               Padding="16,8" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" 
               BorderThickness="0,1,0,0">
             <Grid.ColumnDefinitions>

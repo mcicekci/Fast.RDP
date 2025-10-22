@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using FastRDP.Models;
 using FastRDP.Services;
@@ -24,6 +25,8 @@ namespace FastRDP.ViewModels
         private string _notes;
         private string _newTag;
         private bool _favorite;
+        private bool _useMultiMonitor;
+        private bool _useAllMonitors;
         private bool _isEditMode;
 
         public ProfileEditorViewModel(RdpProfile profile = null)
@@ -141,6 +144,24 @@ namespace FastRDP.ViewModels
         }
 
         /// <summary>
+        /// Çoklu monitör kullan
+        /// </summary>
+        public bool UseMultiMonitor
+        {
+            get => _useMultiMonitor;
+            set => SetProperty(ref _useMultiMonitor, value);
+        }
+
+        /// <summary>
+        /// Tüm monitörleri kullan
+        /// </summary>
+        public bool UseAllMonitors
+        {
+            get => _useAllMonitors;
+            set => SetProperty(ref _useAllMonitors, value);
+        }
+
+        /// <summary>
         /// Yeni eklenecek etiket
         /// </summary>
         public string NewTag
@@ -178,11 +199,11 @@ namespace FastRDP.ViewModels
 
         private void InitializeCommands()
         {
-            SaveCommand = new RelayCommand(Save, () => IsValid);
+            SaveCommand = new AsyncRelayCommand(SaveAsync, () => IsValid);
             CancelCommand = new RelayCommand(Cancel);
             AddTagCommand = new RelayCommand(AddTag, () => !string.IsNullOrWhiteSpace(NewTag));
             RemoveTagCommand = new RelayCommand<string>(RemoveTag);
-            TestConnectionCommand = new RelayCommand(TestConnection, () => !string.IsNullOrWhiteSpace(Host));
+            TestConnectionCommand = new AsyncRelayCommand(TestConnectionAsync, () => !string.IsNullOrWhiteSpace(Host));
         }
 
         #endregion
@@ -202,6 +223,8 @@ namespace FastRDP.ViewModels
             Resolution = profile.Resolution;
             Notes = profile.Notes;
             Favorite = profile.Favorite;
+            UseMultiMonitor = profile.UseMultiMonitor;
+            UseAllMonitors = profile.UseAllMonitors;
 
             Tags.Clear();
             foreach (var tag in profile.Tags)
@@ -213,7 +236,7 @@ namespace FastRDP.ViewModels
         /// <summary>
         /// Profili kaydeder
         /// </summary>
-        private void Save()
+        private async Task SaveAsync()
         {
             try
             {
@@ -225,20 +248,22 @@ namespace FastRDP.ViewModels
                 CurrentProfile.Resolution = Resolution ?? "Auto";
                 CurrentProfile.Notes = Notes ?? string.Empty;
                 CurrentProfile.Favorite = Favorite;
+                CurrentProfile.UseMultiMonitor = UseMultiMonitor;
+                CurrentProfile.UseAllMonitors = UseAllMonitors;
                 CurrentProfile.Tags = Tags.ToList();
 
                 if (IsEditMode)
                 {
                     // Mevcut profili güncelle
-                    _rdpFileService.UpdateRdpFile(CurrentProfile);
-                    _settingsService.UpdateProfile(CurrentProfile);
+                    await _rdpFileService.UpdateRdpFileAsync(CurrentProfile);
+                    await _settingsService.UpdateProfileAsync(CurrentProfile);
                 }
                 else
                 {
                     // Yeni profil oluştur
                     CurrentProfile.CreatedAt = DateTime.Now;
-                    _rdpFileService.CreateRdpFile(CurrentProfile);
-                    _settingsService.AddProfile(CurrentProfile);
+                    await _rdpFileService.CreateRdpFileAsync(CurrentProfile);
+                    await _settingsService.AddProfileAsync(CurrentProfile);
                 }
 
                 OnSaveCompleted?.Invoke(this, CurrentProfile);
@@ -290,7 +315,7 @@ namespace FastRDP.ViewModels
         /// <summary>
         /// Bağlantıyı test eder
         /// </summary>
-        private void TestConnection()
+        private async Task TestConnectionAsync()
         {
             if (string.IsNullOrWhiteSpace(Host))
                 return;
@@ -308,18 +333,16 @@ namespace FastRDP.ViewModels
                     File = $"temp_test_{Guid.NewGuid()}.rdp"
                 };
 
-                _rdpFileService.CreateRdpFile(tempProfile);
+                await _rdpFileService.CreateRdpFileAsync(tempProfile);
                 _rdpFileService.ConnectToRdp(tempProfile);
 
                 // Test dosyasını sil
-                System.Threading.Tasks.Task.Delay(2000).ContinueWith(_ =>
+                await Task.Delay(2000);
+                try
                 {
-                    try
-                    {
-                        _rdpFileService.DeleteRdpFile(tempProfile.File);
-                    }
-                    catch { }
-                });
+                    _rdpFileService.DeleteRdpFile(tempProfile.File);
+                }
+                catch { }
             }
             catch (Exception ex)
             {

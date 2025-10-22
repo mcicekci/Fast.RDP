@@ -44,6 +44,16 @@ namespace FastRDP.Models
         public string Resolution { get; set; } = "Auto";
 
         /// <summary>
+        /// Çoklu monitör desteği
+        /// </summary>
+        public bool UseMultiMonitor { get; set; } = false;
+
+        /// <summary>
+        /// Tüm monitörleri kullan
+        /// </summary>
+        public bool UseAllMonitors { get; set; } = false;
+
+        /// <summary>
         /// Profil notları
         /// </summary>
         public string Notes { get; set; } = string.Empty;

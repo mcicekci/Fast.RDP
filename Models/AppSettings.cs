@@ -18,6 +18,16 @@ namespace FastRDP.Models
         public string Theme { get; set; } = "dark";
 
         /// <summary>
+        /// Accent color (Windows, Blue, Purple, Green, Orange, Red, Custom)
+        /// </summary>
+        public string AccentColor { get; set; } = "Blue";
+
+        /// <summary>
+        /// Font boyutu (Small, Medium, Large)
+        /// </summary>
+        public string FontSize { get; set; } = "Medium";
+
+        /// <summary>
         /// Thumbnail gösterilsin mi
         /// </summary>
         public bool ShowThumbnails { get; set; } = false;
