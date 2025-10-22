@@ -99,7 +99,7 @@ Issue açarken şu bilgileri ekleyin:
 
 2. **Projeyi Klonlayın**
    ```bash
-   git clone https://github.com/yourusername/FastRDP.git
+   git clone https://github.com/mcicekci/Fast.RDP.git
    ```
 
 3. **Dependencies'i Yükleyin**

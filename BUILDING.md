@@ -30,8 +30,8 @@ Gerekli bileşenler:
 ### 1. Repoyu Klonlayın
 
 ```bash
-git clone https://github.com/yourusername/FastRDP.git
-cd FastRDP
+git clone https://github.com/mcicekci/Fast.RDP.git
+cd Fast.RDP
 ```
 
 ### 2. Visual Studio ile Açın
@@ -321,5 +321,5 @@ dotnet build /m /v:detailed
 
 ---
 
-Sorularınız için [GitHub Issues](https://github.com/yourusername/FastRDP/issues) sayfasını ziyaret edin.
+Sorularınız için [GitHub Issues](https://github.com/mcicekci/Fast.RDP/issues) sayfasını ziyaret edin.
 

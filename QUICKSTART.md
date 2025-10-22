@@ -8,8 +8,8 @@ Bu rehber, FastRDP'yi 5 dakikada kullanmaya başlamanız için hazırlanmıştı
 
 ```bash
 # Repository'i klonlayın
-git clone https://github.com/yourusername/FastRDP.git
-cd FastRDP
+git clone https://github.com/mcicekci/Fast.RDP.git
+cd Fast.RDP
 
 # Visual Studio ile açın
 start FastRDP.sln
@@ -256,7 +256,7 @@ Sorunlarla karşılaşırsanız:
 1. **Dokümantasyon**: [README.md](README.md)
 2. **Mimari**: [ARCHITECTURE.md](ARCHITECTURE.md)
 3. **Derleme**: [BUILDING.md](BUILDING.md)
-4. **Issues**: [GitHub Issues](https://github.com/yourusername/FastRDP/issues)
+4. **Issues**: [GitHub Issues](https://github.com/mcicekci/Fast.RDP/issues)
 
 ## 🎉 Tebrikler!
 

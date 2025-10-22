@@ -50,8 +50,8 @@ Modern ve hızlı bir RDP (Remote Desktop Protocol) bağlantı yönetim uygulama
 
 2. **Projeyi klonlayın:**
    ```bash
-   git clone https://github.com/yourusername/FastRDP.git
-   cd FastRDP
+   git clone https://github.com/mcicekci/Fast.RDP.git
+   cd Fast.RDP
    ```
 
 3. **Projeyi açın:**
@@ -73,7 +73,7 @@ Modern ve hızlı bir RDP (Remote Desktop Protocol) bağlantı yönetim uygulama
 
 ### Son Kullanıcı Kurulumu
 
-1. [Releases](https://github.com/yourusername/FastRDP/releases) sayfasından son sürümü indirin
+1. [Releases](https://github.com/mcicekci/Fast.RDP/releases) sayfasından son sürümü indirin
 2. `FastRDP_Setup.exe` dosyasını çalıştırın
 3. Kurulum sihirbazını takip edin
 4. Uygulamayı başlatın ve ilk profilinizi oluşturun
@@ -256,7 +256,7 @@ Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için [LICENSE](LICE
 ## 👥 Geliştirici
 
 **FastRDP Team**
-- GitHub: [@yourusername](https://github.com/yourusername)
+- GitHub: [mcicekci/Fast.RDP](https://github.com/mcicekci/Fast.RDP)
 
 ## 🙏 Teşekkürler
 
@@ -267,8 +267,7 @@ Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için [LICENSE](LICE
 ## 📞 İletişim
 
 Sorularınız veya önerileriniz için:
-- Issue açın: [GitHub Issues](https://github.com/yourusername/FastRDP/issues)
-- Email: support@fastrdp.com
+- Issue açın: [GitHub Issues](https://github.com/mcicekci/Fast.RDP/issues)
 
 ## ⚠️ Feragatname
 
