@@ -18,7 +18,21 @@ namespace FastRDP.Services
 
         public RdpFileService(string profilesPath = "Data/profiles")
         {
-            _profilesPath = profilesPath;
+            // Assembly'nin bulunduğu dizini al
+            var assemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
+            var appDirectory = Path.GetDirectoryName(assemblyLocation);
+            
+            // Relative path ise, uygulama dizinine göre absolute path oluştur
+            if (!Path.IsPathRooted(profilesPath))
+            {
+                _profilesPath = Path.Combine(appDirectory, profilesPath);
+            }
+            else
+            {
+                _profilesPath = profilesPath;
+            }
+            
+            Console.WriteLine($"RdpFileService başlatıldı. Profiles klasörü: {_profilesPath}");
             EnsureDirectoryExists();
         }
 
@@ -27,9 +41,19 @@ namespace FastRDP.Services
         /// </summary>
         private void EnsureDirectoryExists()
         {
-            if (!Directory.Exists(_profilesPath))
+            try
             {
-                Directory.CreateDirectory(_profilesPath);
+                if (!Directory.Exists(_profilesPath))
+                {
+                    Directory.CreateDirectory(_profilesPath);
+                    Console.WriteLine($"Profiles klasörü oluşturuldu: {Path.GetFullPath(_profilesPath)}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Profiles klasörü oluşturma hatası: {ex.Message}");
+                Console.WriteLine($"Hedef yol: {_profilesPath}");
+                throw;
             }
         }
 
@@ -277,15 +301,17 @@ namespace FastRDP.Services
         /// </summary>
         private void ParseRdpLine(string line, RdpProfile profile)
         {
-            if (string.IsNullOrWhiteSpace(line) || !line.Contains(":"))
-                return;
+            try
+            {
+                if (string.IsNullOrWhiteSpace(line) || !line.Contains(":"))
+                    return;
 
-            var parts = line.Split(new[] { ':' }, 3);
-            if (parts.Length < 3)
-                return;
+                var parts = line.Split(new[] { ':' }, 3);
+                if (parts.Length < 3)
+                    return;
 
-            var key = parts[0].Trim();
-            var value = parts[2].Trim();
+                var key = parts[0].Trim();
+                var value = parts[2].Trim();
 
             switch (key)
             {
@@ -296,8 +322,15 @@ namespace FastRDP.Services
                     if (value.Contains("\\"))
                     {
                         var userParts = value.Split('\\');
-                        profile.Domain = userParts[0];
-                        profile.Username = userParts[1];
+                        if (userParts.Length >= 2)
+                        {
+                            profile.Domain = userParts[0];
+                            profile.Username = userParts[1];
+                        }
+                        else if (userParts.Length == 1)
+                        {
+                            profile.Username = userParts[0];
+                        }
                     }
                     else
                     {
@@ -342,6 +375,12 @@ namespace FastRDP.Services
                         profile.UseAllMonitors = true;
                     }
                     break;
+            }
+            }
+            catch (Exception ex)
+            {
+                // Parsing hatalarını logla ama işlemi durdurma
+                Console.WriteLine($"RDP satır parse hatası: {line} - Hata: {ex.Message}");
             }
         }
 

@@ -21,6 +21,7 @@ namespace FastRDP.ViewModels
         private string _host;
         private string _username;
         private string _domain;
+        private string _group;
         private string _resolution;
         private string _notes;
         private string _newTag;
@@ -50,6 +51,9 @@ namespace FastRDP.ViewModels
                 "Custom"
             };
 
+            AvailableGroups = new ObservableCollection<string>();
+            LoadAvailableGroups();
+
             InitializeCommands();
 
             if (profile != null)
@@ -61,6 +65,7 @@ namespace FastRDP.ViewModels
             {
                 CurrentProfile = new RdpProfile();
                 Resolution = "Auto";
+                Group = "Genel";
             }
         }
 
@@ -114,6 +119,15 @@ namespace FastRDP.ViewModels
         {
             get => _domain;
             set => SetProperty(ref _domain, value);
+        }
+
+        /// <summary>
+        /// Grup
+        /// </summary>
+        public string Group
+        {
+            get => _group;
+            set => SetProperty(ref _group, value);
         }
 
         /// <summary>
@@ -181,6 +195,11 @@ namespace FastRDP.ViewModels
         public List<string> AvailableResolutions { get; }
 
         /// <summary>
+        /// Kullanılabilir grup seçenekleri
+        /// </summary>
+        public ObservableCollection<string> AvailableGroups { get; }
+
+        /// <summary>
         /// Formu kaydetmek için geçerli mi
         /// </summary>
         public bool IsValid =>
@@ -220,6 +239,7 @@ namespace FastRDP.ViewModels
             Host = profile.Host;
             Username = profile.Username;
             Domain = profile.Domain;
+            Group = profile.Group ?? "Genel";
             Resolution = profile.Resolution;
             Notes = profile.Notes;
             Favorite = profile.Favorite;
@@ -245,6 +265,7 @@ namespace FastRDP.ViewModels
                 CurrentProfile.Host = Host;
                 CurrentProfile.Username = Username ?? string.Empty;
                 CurrentProfile.Domain = Domain ?? string.Empty;
+                CurrentProfile.Group = Group ?? "Genel";
                 CurrentProfile.Resolution = Resolution ?? "Auto";
                 CurrentProfile.Notes = Notes ?? string.Empty;
                 CurrentProfile.Favorite = Favorite;
@@ -347,6 +368,42 @@ namespace FastRDP.ViewModels
             catch (Exception ex)
             {
                 Console.WriteLine($"Test bağlantısı hatası: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region Private Methods
+
+        /// <summary>
+        /// Mevcut profillerdeki grupları yükler
+        /// </summary>
+        private void LoadAvailableGroups()
+        {
+            try
+            {
+                AvailableGroups.Clear();
+                AvailableGroups.Add("Genel");
+                
+                var profiles = _settingsService.GetAllProfiles();
+                var groups = profiles
+                    .Where(p => !string.IsNullOrWhiteSpace(p.Group))
+                    .Select(p => p.Group)
+                    .Distinct()
+                    .OrderBy(g => g);
+
+                foreach (var group in groups)
+                {
+                    if (!AvailableGroups.Contains(group))
+                    {
+                        AvailableGroups.Add(group);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Grup listesi yüklenemedi: {ex.Message}");
+                AvailableGroups.Add("Genel");
             }
         }
 

@@ -59,6 +59,11 @@ namespace FastRDP.Models
         public string Notes { get; set; } = string.Empty;
 
         /// <summary>
+        /// Profil grubu (kategori)
+        /// </summary>
+        public string Group { get; set; } = "Genel";
+
+        /// <summary>
         /// Etiketler (kategorilendirme için)
         /// </summary>
         public List<string> Tags { get; set; } = new List<string>();

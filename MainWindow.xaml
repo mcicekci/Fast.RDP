@@ -5,6 +5,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:models="using:FastRDP.Models"
+    xmlns:local="using:FastRDP"
     mc:Ignorable="d">
 
     <Grid>
@@ -15,12 +17,20 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- InfoBar -->
+        <!-- InfoBar - Ekranın en üstünde bildirim mesajları -->
         <InfoBar x:Name="NotificationInfoBar"
                  Grid.Row="0"
                  IsOpen="False"
                  IsClosable="True"
-                 Margin="8,8,8,0"/>
+                 Margin="12,12,12,4"
+                 CornerRadius="8">
+            <InfoBar.ActionButton>
+                <Button Content="📋 Kopyala" 
+                        Click="OnCopyMessageClick"
+                        Style="{StaticResource AccentButtonStyle}"
+                        Padding="8,4"/>
+            </InfoBar.ActionButton>
+        </InfoBar>
 
         <!-- Üst Bar -->
         <Grid Grid.Row="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" 
@@ -155,7 +165,7 @@
                 </ScrollViewer>
             </Grid>
 
-            <!-- Orta Panel - Profil Listesi -->
+            <!-- Orta Panel - Profil Listesi (Gruplandırılmış + Drop Zone) -->
             <Grid Grid.Column="1" Padding="16"
                   AllowDrop="True"
                   DragOver="OnDragOver"
@@ -166,17 +176,117 @@
                 </Grid.RowDefinitions>
 
                 <!-- Liste Başlığı -->
-                <TextBlock Grid.Row="0" Text="PROFILLER" FontSize="12" FontWeight="SemiBold" 
-                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,12"/>
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12" Margin="0,0,0,12">
+                    <TextBlock Text="PROFILLER" FontSize="12" FontWeight="SemiBold" 
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    <Border Background="{ThemeResource AccentFillColorDefaultBrush}"
+                            Padding="6,2"
+                            CornerRadius="4"
+                            Opacity="0.2">
+                        <TextBlock Text="RDP dosyalarını buraya sürükleyin" 
+                                   FontSize="10" 
+                                   Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                    </Border>
+                </StackPanel>
 
-                <!-- Profil Listesi -->
+                <!-- Gruplandırılmış Profil Listesi -->
                 <ListView Grid.Row="1" 
                           x:Name="ProfilesList"
                           SelectionMode="Single"
                           DoubleTapped="OnProfileDoubleTapped"
-                          SelectionChanged="OnProfileSelectionChanged"/>
+                          SelectionChanged="OnProfileSelectionChanged">
+                    
+                    <!-- Grup Başlığı Stili -->
+                    <ListView.GroupStyle>
+                        <GroupStyle>
+                            <GroupStyle.HeaderTemplate>
+                                <DataTemplate>
+                                    <Grid Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                          Padding="12,8"
+                                          Margin="0,12,0,8"
+                                          CornerRadius="8">
+                                        <StackPanel Orientation="Horizontal" Spacing="12">
+                                            <FontIcon Glyph="&#xE8F1;" 
+                                                      FontSize="16"
+                                                      Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+                                            <TextBlock Text="{Binding Key}" 
+                                                       FontWeight="SemiBold" 
+                                                       FontSize="16"
+                                                       Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+                                            <Border Background="{ThemeResource AccentFillColorDefaultBrush}"
+                                                    Padding="6,2"
+                                                    CornerRadius="4"
+                                                    Opacity="0.3">
+                                                <TextBlock Text="{Binding ItemCount}" 
+                                                           FontSize="11"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                                            </Border>
+                                        </StackPanel>
+                                    </Grid>
+                                </DataTemplate>
+                            </GroupStyle.HeaderTemplate>
+                        </GroupStyle>
+                    </ListView.GroupStyle>
+                    
+                    <!-- Profil Item Template -->
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="models:RdpProfile">
+                            <Grid Padding="12" CornerRadius="8" Margin="4"
+                                  Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                  BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                  BorderThickness="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
 
-                <!-- Drag & Drop Overlay -->
+                                <!-- Icon -->
+                                <Border Grid.Column="0" 
+                                        Width="48" Height="48" 
+                                        Background="{ThemeResource AccentFillColorDefaultBrush}" 
+                                        CornerRadius="8"
+                                        Margin="0,0,12,0">
+                                    <FontIcon Glyph="&#xE968;" 
+                                              FontSize="24" 
+                                              Foreground="White"/>
+                                </Border>
+
+                                <!-- Info -->
+                                <StackPanel Grid.Column="1" 
+                                            VerticalAlignment="Center" 
+                                            Spacing="4">
+                                    <TextBlock Text="{x:Bind Name}" 
+                                               FontWeight="SemiBold" 
+                                               FontSize="15"
+                                               TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Text="{x:Bind Host}" 
+                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" 
+                                               FontSize="13"
+                                               TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Text="{x:Bind Username}" 
+                                               Foreground="{ThemeResource TextFillColorTertiaryBrush}" 
+                                               FontSize="12"
+                                               TextTrimming="CharacterEllipsis"
+                                               Visibility="{x:Bind local:MainWindow.StringToVisibility(Username)}"/>
+                                </StackPanel>
+
+                                <!-- Favorite Icon -->
+                                <Grid Grid.Column="2" 
+                                      VerticalAlignment="Top"
+                                      Margin="8,0,0,0">
+                                    <FontIcon Glyph="&#xE735;" 
+                                              FontSize="16" 
+                                              Foreground="#FFB900"
+                                              Visibility="{x:Bind local:MainWindow.BoolToVisibility(Favorite)}"/>
+                                </Grid>
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+
+                <!-- Drag & Drop Görsel Geri Bildirim -->
                 <Border x:Name="DragDropOverlay"
                         Grid.Row="0" Grid.RowSpan="2"
                         Background="{ThemeResource AccentFillColorDefaultBrush}"
@@ -189,12 +299,17 @@
                                 VerticalAlignment="Center"
                                 Spacing="16">
                         <FontIcon Glyph="&#xE896;" 
-                                  FontSize="48" 
+                                  FontSize="64" 
                                   Foreground="White"/>
-                        <TextBlock Text="RDP dosyalarını buraya sürükleyin" 
-                                   FontSize="16" 
-                                   FontWeight="SemiBold"
+                        <TextBlock Text="RDP dosyalarını bırakın" 
+                                   FontSize="20" 
+                                   FontWeight="Bold"
                                    Foreground="White"
+                                   HorizontalAlignment="Center"/>
+                        <TextBlock Text="Dosyalar otomatik olarak içe aktarılacak" 
+                                   FontSize="14" 
+                                   Foreground="White"
+                                   Opacity="0.8"
                                    HorizontalAlignment="Center"/>
                     </StackPanel>
                 </Border>

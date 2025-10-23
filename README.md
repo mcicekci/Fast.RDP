@@ -15,6 +15,7 @@ Modern ve hızlı bir RDP (Remote Desktop Protocol) bağlantı yönetim uygulama
 - 🕒 **Son Kullanılanlar**: En son bağlandığınız sunucular
 - 📝 **Profil Düzenleme**: Kolay ve kullanışlı profil oluşturma/düzenleme
 - 🏷️ **Etiketleme**: Profillerinizi kategorize edin
+- 📁 **Gruplama**: Profilleri gruplar halinde düzenleyin
 
 ### Kullanıcı Deneyimi
 - 🎨 **Tema Desteği**: Light ve Dark tema
@@ -25,6 +26,7 @@ Modern ve hızlı bir RDP (Remote Desktop Protocol) bağlantı yönetim uygulama
 ### Gelişmiş Özellikler
 - 📌 **Jump List Entegrasyonu**: Taskbar'dan hızlı erişim
 - 🔗 **Çift Tıkla Bağlan**: Hızlı bağlantı kurma
+- 🖥️ **Çoklu Monitör Desteği**: Birden fazla monitörde RDP oturumu açma
 - 📊 **İstatistikler**: Toplam profil sayısı ve kullanım bilgileri
 - 🔒 **Güvenli**: Şifreler Windows DPAPI ile korunur (opsiyonel)
 
@@ -96,9 +98,14 @@ Modern ve hızlı bir RDP (Remote Desktop Protocol) bağlantı yönetim uygulama
    - **Host/IP Adresi** (zorunlu)
    - Kullanıcı Adı (opsiyonel)
    - Domain (opsiyonel)
-   - Çözünürlük ayarı
+   - Grup (varsayılan: "Genel")
+   - Çözünürlük ayarı (Auto, Fullscreen, 1920x1080, vb.)
+   - Çoklu monitör seçenekleri:
+     - Çoklu monitör kullan
+     - Tüm monitörleri kullan (fullscreen)
    - Etiketler
    - Notlar
+   - Favorilere ekle
 3. **"Kaydet"** butonuna tıklayın
 
 ### Bağlantı Kurma
@@ -110,11 +117,12 @@ Modern ve hızlı bir RDP (Remote Desktop Protocol) bağlantı yönetim uygulama
 
 ### Arama ve Filtreleme
 
-- **Arama Kutusu**: Üst bardaki arama kutusunu kullanarak isim, host veya etiket ile arayın
+- **Arama Kutusu**: Üst bardaki arama kutusunu kullanarak isim, host, grup veya etiket ile arayın
 - **Filtreler**: Sol panelden filtreleri kullanın:
   - Tümü
   - Favoriler
   - Son Kullanılanlar
+  - Gruplara göre filtreleme
 
 ## 🗂️ Proje Yapısı
 
@@ -198,7 +206,10 @@ FastRDP/
     "host": "192.168.1.100",
     "username": "admin",
     "domain": "COMPANY",
+    "group": "Üretim",
     "resolution": "1920x1080",
+    "useMultiMonitor": false,
+    "useAllMonitors": false,
     "notes": "Ana ERP sunucusu",
     "tags": ["ERP", "Finans"],
     "lastUsed": "2025-10-22T12:35:00",
@@ -225,8 +236,8 @@ FastRDP/
 ### Sprint 3: Gelişmiş Özellikler ✅
 - [x] Jump List tam entegrasyonu
 - [x] Sistem tepsisi desteği
+- [x] Çoklu monitör desteği
 - [ ] Widget görünümü
-- [ ] Çoklu monitör desteği
 
 ### Sprint 4: Test ve Dağıtım (Planlanan)
 - [ ] Birim testleri

@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.IO;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using FastRDP.Models;
 using FastRDP.Services;
 using FastRDP.ViewModels;
@@ -9,16 +10,36 @@ using FastRDP.Views;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Data;
 using WinRT.Interop;
 using Microsoft.UI.Windowing;
 using Windows.Graphics;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage.Pickers;
+using System.Runtime.InteropServices;
 
 namespace FastRDP
 {
+    public class CollectionViewGroup
+    {
+        public string Key { get; set; }
+        public int ItemCount { get; set; }
+        public ObservableCollection<RdpProfile> Items { get; set; }
+    }
+
     public sealed partial class MainWindow : Window
     {
+        // Boolean'dan Visibility'ye dönüşüm için helper
+        public static Visibility BoolToVisibility(bool value)
+        {
+            return value ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        public static Visibility StringToVisibility(string value)
+        {
+            return string.IsNullOrWhiteSpace(value) ? Visibility.Collapsed : Visibility.Visible;
+        }
+
         private readonly RdpFileService _rdpFileService;
         private readonly SettingsService _settingsService;
         private readonly JumpListService _jumpListService;
@@ -190,13 +211,28 @@ namespace FastRDP
                 // Metadata'yı güncelle
                 _settingsService.SaveProfiles(profiles);
 
-                // ListView'e ekle
-                ProfilesList.Items.Clear();
-                foreach (var profile in profiles.OrderBy(p => p.Name))
+                // Gruplandırılmış görünüm oluştur
+                var groupedProfiles = profiles
+                    .GroupBy(p => string.IsNullOrWhiteSpace(p.Group) ? "Genel" : p.Group)
+                    .OrderBy(g => g.Key)
+                    .Select(g => new CollectionViewGroup
+                    {
+                        Key = g.Key,
+                        ItemCount = g.Count(),
+                        Items = new ObservableCollection<RdpProfile>(g.OrderBy(p => p.Name))
+                    })
+                    .ToList();
+
+                // CollectionViewSource oluştur
+                var cvs = new CollectionViewSource
                 {
-                    var item = CreateProfileCardItem(profile);
-                    ProfilesList.Items.Add(item);
-                }
+                    IsSourceGrouped = true,
+                    Source = groupedProfiles,
+                    ItemsPath = new PropertyPath("Items")
+                };
+
+                // ListView'i binding ile güncelle
+                ProfilesList.ItemsSource = cvs.View;
 
                 StatusText.Text = $"Toplam Profil: {profiles.Count}";
             }
@@ -470,7 +506,7 @@ namespace FastRDP
 
         private void OnProfileSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (ProfilesList.SelectedItem is ListViewItem item && item.Tag is RdpProfile profile)
+            if (ProfilesList.SelectedItem is RdpProfile profile)
             {
                 _selectedProfile = profile;
                 ProfileDetails.Visibility = Visibility.Visible;
@@ -613,118 +649,269 @@ namespace FastRDP
             }
         }
 
+        // Win32 API için OpenFileDialog
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        private struct OPENFILENAME
+        {
+            public int lStructSize;
+            public IntPtr hwndOwner;
+            public IntPtr hInstance;
+            public string lpstrFilter;
+            public string lpstrCustomFilter;
+            public int nMaxCustFilter;
+            public int nFilterIndex;
+            public string lpstrFile;
+            public int nMaxFile;
+            public string lpstrFileTitle;
+            public int nMaxFileTitle;
+            public string lpstrInitialDir;
+            public string lpstrTitle;
+            public int Flags;
+            public short nFileOffset;
+            public short nFileExtension;
+            public string lpstrDefExt;
+            public IntPtr lCustData;
+            public IntPtr lpfnHook;
+            public string lpTemplateName;
+            public IntPtr pvReserved;
+            public int dwReserved;
+            public int FlagsEx;
+        }
+
+        [DllImport("comdlg32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        private static extern bool GetOpenFileName(ref OPENFILENAME ofn);
+
+        private const int OFN_ALLOWMULTISELECT = 0x00000200;
+        private const int OFN_EXPLORER = 0x00080000;
+        private const int OFN_FILEMUSTEXIST = 0x00001000;
+        private const int OFN_PATHMUSTEXIST = 0x00000800;
+
         private async void OnImportRdpClick(object sender, RoutedEventArgs e)
         {
             try
             {
-                var openPicker = new FileOpenPicker
-                {
-                    ViewMode = PickerViewMode.List,
-                    SuggestedStartLocation = PickerLocationId.DocumentsLibrary
-                };
-                openPicker.FileTypeFilter.Add(".rdp");
-
-                // WinUI 3 için window handle gerekli
+                // Window handle al
                 var hwnd = WindowNative.GetWindowHandle(this);
-                InitializeWithWindow.Initialize(openPicker, hwnd);
+                
+                // Win32 OpenFileDialog kullan (daha güvenilir)
+                var ofn = new OPENFILENAME();
+                ofn.lStructSize = Marshal.SizeOf(ofn);
+                ofn.hwndOwner = hwnd;
+                ofn.lpstrFilter = "RDP Dosyaları (*.rdp)\0*.rdp\0Tüm Dosyalar (*.*)\0*.*\0";
+                ofn.lpstrFile = new string(new char[8192]); // Çoklu dosya seçimi için büyük buffer
+                ofn.nMaxFile = ofn.lpstrFile.Length;
+                ofn.lpstrFileTitle = null;
+                ofn.nMaxFileTitle = 0;
+                ofn.lpstrInitialDir = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+                ofn.lpstrTitle = "RDP Dosyalarını Seçin";
+                ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_ALLOWMULTISELECT;
 
-                var files = await openPicker.PickMultipleFilesAsync();
-                if (files != null && files.Count > 0)
+                string[] filePaths = null;
+                
+                // UI thread'den çıkıp dosya seçiciyi aç
+                await System.Threading.Tasks.Task.Run(() =>
                 {
-                    var importedCount = 0;
-                    var errors = new List<string>();
-
-                    foreach (var file in files)
+                    if (GetOpenFileName(ref ofn))
                     {
+                        // Çoklu dosya seçildiğinde format: "klasör\0dosya1\0dosya2\0\0"
+                        var result = ofn.lpstrFile;
+                        var files = result.Split('\0').Where(s => !string.IsNullOrEmpty(s)).ToArray();
+                        
+                        if (files.Length == 1)
+                        {
+                            // Tek dosya seçildi
+                            filePaths = new[] { files[0] };
+                        }
+                        else if (files.Length > 1)
+                        {
+                            // Çoklu dosya seçildi - ilk eleman klasör
+                            var directory = files[0];
+                            filePaths = files.Skip(1).Select(f => Path.Combine(directory, f)).ToArray();
+                        }
+                    }
+                });
+
+                if (filePaths == null || filePaths.Length == 0)
+                {
+                    // Kullanıcı iptal etti
+                    return;
+                }
+
+                // Ayarları bir kez yükle
+                AppSettings settings;
+                try
+                {
+                    settings = _settingsService.LoadSettings();
+                    if (settings == null)
+                    {
+                        ShowError("Uygulama ayarları yüklenemedi");
+                        return;
+                    }
+                }
+                catch (Exception settingsEx)
+                {
+                    ShowError($"Ayarlar yüklenemedi: {settingsEx.Message}");
+                    return;
+                }
+
+                // RDP klasörünü kontrol et ve oluştur
+                if (string.IsNullOrWhiteSpace(settings.RdpFolder))
+                {
+                    settings.RdpFolder = "Data/profiles";
+                    try
+                    {
+                        _settingsService.SaveSettings(settings);
+                    }
+                    catch (Exception saveEx)
+                    {
+                        ShowError($"Varsayılan ayarlar kaydedilemedi: {saveEx.Message}");
+                        return;
+                    }
+                }
+
+                // Hedef klasörün var olduğundan emin ol
+                try
+                {
+                    if (!Directory.Exists(settings.RdpFolder))
+                    {
+                        Directory.CreateDirectory(settings.RdpFolder);
+                    }
+                }
+                catch (Exception dirEx)
+                {
+                    ShowError($"RDP klasörü oluşturulamadı: {dirEx.Message}\n\nKlasör: {settings.RdpFolder}");
+                    return;
+                }
+
+                var importedCount = 0;
+                var errors = new List<string>();
+
+                foreach (var filePath in filePaths)
+                {
+                    if (string.IsNullOrEmpty(filePath)) continue;
+
+                    try
+                    {
+                        // Dosya varlığını kontrol et
+                        if (!File.Exists(filePath))
+                        {
+                            errors.Add($"{Path.GetFileName(filePath)}: Dosya bulunamadı");
+                            continue;
+                        }
+
+                        // Dosya uzantısını kontrol et
+                        var fileExtension = Path.GetExtension(filePath)?.ToLower();
+                        if (fileExtension != ".rdp")
+                        {
+                            errors.Add($"{Path.GetFileName(filePath)}: Geçersiz dosya türü (sadece .rdp dosyaları)");
+                            continue;
+                        }
+
+                        var fileName = Path.GetFileName(filePath);
+                        var targetPath = Path.Combine(settings.RdpFolder, fileName);
+
+                        // Dosya zaten varsa farklı isim kullan
+                        if (File.Exists(targetPath))
+                        {
+                            var nameWithoutExt = Path.GetFileNameWithoutExtension(fileName);
+                            var extension = Path.GetExtension(fileName);
+                            var counter = 1;
+
+                            while (File.Exists(targetPath))
+                            {
+                                targetPath = Path.Combine(
+                                    settings.RdpFolder,
+                                    $"{nameWithoutExt}_{counter}{extension}"
+                                );
+                                counter++;
+                            }
+                            fileName = Path.GetFileName(targetPath);
+                        }
+
+                        // Dosyayı kopyala
+                        File.Copy(filePath, targetPath, false);
+
+                        // Dosyayı okuyup profil olarak ekle
                         try
                         {
-                            // Dosyayı RDP klasörüne kopyala
-                            var settings = _settingsService.LoadSettings();
-                            var targetPath = Path.Combine(settings.RdpFolder, file.Name);
-
-                            // Hedef klasörün var olduğundan emin ol
-                            Directory.CreateDirectory(settings.RdpFolder);
-
-                            // Dosya zaten varsa farklı isim kullan
-                            if (File.Exists(targetPath))
+                            var profile = _rdpFileService.ReadRdpFile(fileName);
+                            
+                            if (profile == null)
                             {
-                                var fileName = Path.GetFileNameWithoutExtension(file.Name);
-                                var extension = Path.GetExtension(file.Name);
-                                var counter = 1;
-
-                                while (File.Exists(targetPath))
-                                {
-                                    targetPath = Path.Combine(
-                                        settings.RdpFolder,
-                                        $"{fileName}_{counter}{extension}"
-                                    );
-                                    counter++;
-                                }
+                                errors.Add($"{fileName}: Profil oluşturulamadı");
+                                continue;
                             }
-
-                            // Windows.Storage.StorageFile'dan normal file path'e kopyalama
-                            var sourceStream = await file.OpenStreamForReadAsync();
-                            using (var targetStream = File.Create(targetPath))
+                            
+                            // Profil adı yoksa dosya adından oluştur
+                            if (string.IsNullOrWhiteSpace(profile.Name))
                             {
-                                await sourceStream.CopyToAsync(targetStream);
+                                profile.Name = Path.GetFileNameWithoutExtension(fileName);
                             }
-                            sourceStream.Dispose();
-
-                            // Dosyayı okuyup profil olarak ekle
-                            try
+                            
+                            // Profil ID'si yoksa oluştur
+                            if (string.IsNullOrWhiteSpace(profile.Id))
                             {
-                                var profile = _rdpFileService.ReadRdpFile(Path.GetFileName(targetPath));
-                                
-                                // Profil adı yoksa dosya adından oluştur
-                                if (string.IsNullOrWhiteSpace(profile.Name))
-                                {
-                                    profile.Name = Path.GetFileNameWithoutExtension(file.Name);
-                                }
-                                
-                                // Profil ID'si yoksa oluştur
-                                if (string.IsNullOrWhiteSpace(profile.Id))
-                                {
-                                    profile.Id = Guid.NewGuid().ToString();
-                                }
-                                
-                                // Host bilgisi yoksa varsayılan değer
-                                if (string.IsNullOrWhiteSpace(profile.Host))
-                                {
-                                    profile.Host = "localhost";
-                                }
-                                
-                                // Profili kaydet
-                                _settingsService.SaveProfile(profile);
+                                profile.Id = Guid.NewGuid().ToString();
                             }
-                            catch (Exception profileEx)
+                            
+                            // Dosya yolunu ayarla
+                            profile.File = fileName;
+                            
+                            // Host bilgisi yoksa varsayılan değer
+                            if (string.IsNullOrWhiteSpace(profile.Host))
                             {
-                                Console.WriteLine($"Profil oluşturulamadı: {file.Name} - {profileEx.Message}");
+                                profile.Host = "localhost";
                             }
-
+                            
+                            // Profili kaydet
+                            _settingsService.SaveProfile(profile);
                             importedCount++;
                         }
-                        catch (Exception ex)
+                        catch (Exception profileEx)
                         {
-                            errors.Add($"{file.Name}: {ex.Message}");
+                            errors.Add($"{fileName}: Profil oluşturulamadı - {profileEx.Message}");
+                            
+                            // Hatalı dosyayı sil
+                            try
+                            {
+                                if (File.Exists(targetPath))
+                                {
+                                    File.Delete(targetPath);
+                                }
+                            }
+                            catch { }
                         }
                     }
-
-                    // Profilleri yeniden yükle
-                    if (importedCount > 0)
+                    catch (Exception ex)
                     {
-                        LoadProfiles();
-                        ShowSuccess($"✅ {importedCount} RDP dosyası başarıyla içe aktarıldı!");
+                        errors.Add($"{Path.GetFileName(filePath)}: {ex.Message}");
                     }
+                }
 
-                    if (errors.Count > 0)
-                    {
-                        ShowError($"⚠️ Bazı dosyalar içe aktarılamadı:\n{string.Join("\n", errors)}");
-                    }
+                // Profilleri yeniden yükle
+                if (importedCount > 0)
+                {
+                    LoadProfiles();
+                    ShowSuccess($"{importedCount} RDP dosyası başarıyla içe aktarıldı!");
+                }
+
+                if (errors.Count > 0)
+                {
+                    var errorMessage = errors.Count <= 5 
+                        ? string.Join("\n", errors)
+                        : string.Join("\n", errors.Take(5)) + $"\n... ve {errors.Count - 5} hata daha";
+                    
+                    ShowError($"Bazı dosyalar içe aktarılamadı:\n\n{errorMessage}");
+                }
+                else if (importedCount == 0)
+                {
+                    ShowInfo("Hiçbir dosya içe aktarılamadı.");
                 }
             }
             catch (Exception ex)
             {
                 ShowError($"RDP içe aktarma hatası: {ex.Message}");
+                Console.WriteLine($"RDP içe aktarma hatası detay: {ex}");
             }
         }
 
@@ -811,114 +998,173 @@ namespace FastRDP
             // Overlay'i gizle
             ShowDragDropOverlay(false);
 
-            if (e.DataView.Contains(StandardDataFormats.StorageItems))
+            if (!e.DataView.Contains(StandardDataFormats.StorageItems))
             {
-                try
+                return;
+            }
+
+            try
+            {
+                var items = await e.DataView.GetStorageItemsAsync();
+                if (items == null || items.Count == 0)
                 {
-                    var items = await e.DataView.GetStorageItemsAsync();
-                    var importedCount = 0;
-                    var errors = new List<string>();
+                    return;
+                }
 
-                    foreach (var item in items)
+                var importedCount = 0;
+                var errors = new List<string>();
+
+                foreach (var item in items)
+                {
+                    if (item is not Windows.Storage.StorageFile file)
                     {
-                        if (item is Windows.Storage.StorageFile file)
-                        {
-                            if (Path.GetExtension(file.Name).ToLower() == ".rdp")
-                            {
-                                try
-                                {
-                                    // Dosyayı RDP klasörüne kopyala
-                                    var settings = _settingsService.LoadSettings();
-                                    var targetPath = Path.Combine(settings.RdpFolder, file.Name);
-
-                                    // Hedef klasörün var olduğundan emin ol
-                                    Directory.CreateDirectory(settings.RdpFolder);
-
-                                    // Dosya zaten varsa farklı isim kullan
-                                    if (File.Exists(targetPath))
-                                    {
-                                        var fileName = Path.GetFileNameWithoutExtension(file.Name);
-                                        var extension = Path.GetExtension(file.Name);
-                                        var counter = 1;
-                                        
-                                        while (File.Exists(targetPath))
-                                        {
-                                            targetPath = Path.Combine(
-                                                settings.RdpFolder,
-                                                $"{fileName}_{counter}{extension}"
-                                            );
-                                            counter++;
-                                        }
-                                    }
-
-                                    // Windows.Storage.StorageFile'dan normal file path'e kopyalama
-                                    var sourceStream = await file.OpenStreamForReadAsync();
-                                    using (var targetStream = File.Create(targetPath))
-                                    {
-                                        await sourceStream.CopyToAsync(targetStream);
-                                    }
-                                    sourceStream.Dispose();
-
-                                    // Dosyayı okuyup profil olarak ekle
-                                    try
-                                    {
-                                        var profile = _rdpFileService.ReadRdpFile(Path.GetFileName(targetPath));
-                                        
-                                        // Profil adı yoksa dosya adından oluştur
-                                        if (string.IsNullOrWhiteSpace(profile.Name))
-                                        {
-                                            profile.Name = Path.GetFileNameWithoutExtension(file.Name);
-                                        }
-                                        
-                                        // Profil ID'si yoksa oluştur
-                                        if (string.IsNullOrWhiteSpace(profile.Id))
-                                        {
-                                            profile.Id = Guid.NewGuid().ToString();
-                                        }
-                                        
-                                        // Host bilgisi yoksa varsayılan değer
-                                        if (string.IsNullOrWhiteSpace(profile.Host))
-                                        {
-                                            profile.Host = "localhost";
-                                        }
-                                        
-                                        // Profili kaydet
-                                        _settingsService.SaveProfile(profile);
-                                    }
-                                    catch (Exception profileEx)
-                                    {
-                                        Console.WriteLine($"Profil oluşturulamadı: {file.Name} - {profileEx.Message}");
-                                    }
-
-                                    importedCount++;
-                                }
-                                catch (Exception ex)
-                                {
-                                    errors.Add($"{file.Name}: {ex.Message}");
-                                }
-                            }
-                        }
+                        continue;
                     }
 
-                    // Profilleri yeniden yükle (UI thread'de)
-                    this.DispatcherQueue.TryEnqueue(() =>
+                    try
                     {
-                        if (importedCount > 0)
+                        // Dosya uzantısını kontrol et
+                        var fileExtension = Path.GetExtension(file.Name)?.ToLower();
+                        if (fileExtension != ".rdp")
                         {
-                            LoadProfiles();
-                            ShowSuccess($"✅ {importedCount} RDP dosyası başarıyla içe aktarıldı!");
+                            errors.Add($"{file.Name}: Geçersiz dosya türü (sadece .rdp dosyaları)");
+                            continue;
                         }
 
-                        if (errors.Count > 0)
+                        // Ayarları yükle
+                        var settings = _settingsService.LoadSettings();
+                        if (settings == null || string.IsNullOrWhiteSpace(settings.RdpFolder))
                         {
-                            ShowError($"⚠️ Bazı dosyalar içe aktarılamadı:\n{string.Join("\n", errors)}");
+                            errors.Add($"{file.Name}: RDP klasörü ayarlanmamış");
+                            continue;
                         }
-                    });
+
+                        // Hedef klasörün var olduğundan emin ol
+                        if (!Directory.Exists(settings.RdpFolder))
+                        {
+                            Directory.CreateDirectory(settings.RdpFolder);
+                        }
+
+                        // Hedef dosya yolunu belirle
+                        var targetPath = Path.Combine(settings.RdpFolder, file.Name);
+
+                        // Dosya zaten varsa farklı isim kullan
+                        if (File.Exists(targetPath))
+                        {
+                            var fileName = Path.GetFileNameWithoutExtension(file.Name);
+                            var extension = Path.GetExtension(file.Name);
+                            var counter = 1;
+                            
+                            while (File.Exists(targetPath))
+                            {
+                                targetPath = Path.Combine(
+                                    settings.RdpFolder,
+                                    $"{fileName}_{counter}{extension}"
+                                );
+                                counter++;
+                            }
+                        }
+
+                        // Dosyayı kopyala
+                        using (var sourceStream = await file.OpenStreamForReadAsync())
+                        {
+                            if (sourceStream == null || !sourceStream.CanRead)
+                            {
+                                errors.Add($"{file.Name}: Dosya okunamıyor");
+                                continue;
+                            }
+
+                            using (var targetStream = File.Create(targetPath))
+                            {
+                                await sourceStream.CopyToAsync(targetStream);
+                            }
+                        }
+
+                        // Dosyayı okuyup profil olarak ekle
+                        try
+                        {
+                            var targetFileName = Path.GetFileName(targetPath);
+                            var profile = _rdpFileService.ReadRdpFile(targetFileName);
+                            
+                            if (profile == null)
+                            {
+                                errors.Add($"{file.Name}: Profil oluşturulamadı");
+                                continue;
+                            }
+                            
+                            // Profil adı yoksa dosya adından oluştur
+                            if (string.IsNullOrWhiteSpace(profile.Name))
+                            {
+                                profile.Name = Path.GetFileNameWithoutExtension(file.Name);
+                            }
+                            
+                            // Profil ID'si yoksa oluştur
+                            if (string.IsNullOrWhiteSpace(profile.Id))
+                            {
+                                profile.Id = Guid.NewGuid().ToString();
+                            }
+                            
+                            // Dosya yolunu ayarla
+                            profile.File = targetFileName;
+                            
+                            // Host bilgisi yoksa varsayılan değer
+                            if (string.IsNullOrWhiteSpace(profile.Host))
+                            {
+                                profile.Host = "localhost";
+                            }
+                            
+                            // Profili kaydet
+                            _settingsService.SaveProfile(profile);
+                            importedCount++;
+                        }
+                        catch (Exception profileEx)
+                        {
+                            errors.Add($"{file.Name}: Profil oluşturulamadı - {profileEx.Message}");
+                            
+                            // Hatalı dosyayı sil
+                            try
+                            {
+                                if (File.Exists(targetPath))
+                                {
+                                    File.Delete(targetPath);
+                                }
+                            }
+                            catch { }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        errors.Add($"{file.Name}: {ex.Message}");
+                    }
                 }
-                catch (Exception ex)
+
+                // Profilleri yeniden yükle (UI thread'de)
+                this.DispatcherQueue.TryEnqueue(() =>
                 {
-                    ShowError($"Dosya içe aktarma hatası: {ex.Message}");
-                }
+                    if (importedCount > 0)
+                    {
+                        LoadProfiles();
+                        ShowSuccess($"{importedCount} RDP dosyası başarıyla içe aktarıldı!");
+                    }
+
+                    if (errors.Count > 0)
+                    {
+                        var errorMessage = errors.Count <= 5 
+                            ? string.Join("\n", errors)
+                            : string.Join("\n", errors.Take(5)) + $"\n... ve {errors.Count - 5} hata daha";
+                        
+                        ShowError($"Bazı dosyalar içe aktarılamadı:\n\n{errorMessage}");
+                    }
+                    else if (importedCount == 0)
+                    {
+                        ShowInfo("Hiçbir dosya içe aktarılamadı.");
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                ShowError($"Dosya içe aktarma hatası: {ex.Message}");
+                Console.WriteLine($"Dosya içe aktarma hatası detay: {ex}");
             }
         }
 
@@ -947,17 +1193,100 @@ namespace FastRDP
 
         private void ShowError(string message)
         {
-            _errorHandler.ShowWarning(message, "Hata");
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                NotificationInfoBar.Title = "❌ Hata";
+                NotificationInfoBar.Message = message;
+                NotificationInfoBar.Severity = InfoBarSeverity.Error;
+                NotificationInfoBar.IsOpen = true;
+            });
         }
 
         private void ShowInfo(string message)
         {
-            _errorHandler.ShowInfo(message);
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                NotificationInfoBar.Title = "ℹ️ Bilgi";
+                NotificationInfoBar.Message = message;
+                NotificationInfoBar.Severity = InfoBarSeverity.Informational;
+                NotificationInfoBar.IsOpen = true;
+                
+                // 5 saniye sonra otomatik kapat
+                _ = AutoCloseInfoBarAsync(5000);
+            });
         }
 
         private void ShowSuccess(string message)
         {
-            _errorHandler.ShowSuccess(message);
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                NotificationInfoBar.Title = "✅ Başarılı";
+                NotificationInfoBar.Message = message;
+                NotificationInfoBar.Severity = InfoBarSeverity.Success;
+                NotificationInfoBar.IsOpen = true;
+                
+                // 5 saniye sonra otomatik kapat
+                _ = AutoCloseInfoBarAsync(5000);
+            });
+        }
+
+        private async System.Threading.Tasks.Task AutoCloseInfoBarAsync(int delayMs)
+        {
+            await System.Threading.Tasks.Task.Delay(delayMs);
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                NotificationInfoBar.IsOpen = false;
+            });
+        }
+
+        private void OnCopyMessageClick(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var message = NotificationInfoBar.Message;
+                if (!string.IsNullOrEmpty(message))
+                {
+                    var dataPackage = new Windows.ApplicationModel.DataTransfer.DataPackage();
+                    dataPackage.SetText(message);
+                    Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(dataPackage);
+                    
+                    // Başarı bilgisi göster (kısa süre için)
+                    var originalTitle = NotificationInfoBar.Title;
+                    var originalMessage = NotificationInfoBar.Message;
+                    var originalSeverity = NotificationInfoBar.Severity;
+                    
+                    NotificationInfoBar.Title = "✅ Kopyalandı";
+                    NotificationInfoBar.Message = "Mesaj panoya kopyalandı";
+                    NotificationInfoBar.Severity = InfoBarSeverity.Success;
+                    
+                    // 2 saniye sonra eski mesaja geri dön
+                    _ = System.Threading.Tasks.Task.Run(async () =>
+                    {
+                        await System.Threading.Tasks.Task.Delay(2000);
+                        DispatcherQueue.TryEnqueue(() =>
+                        {
+                            NotificationInfoBar.Title = originalTitle;
+                            NotificationInfoBar.Message = originalMessage;
+                            NotificationInfoBar.Severity = originalSeverity;
+                        });
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Mesaj kopyalama hatası: {ex.Message}");
+            }
+        }
+        
+        private void ShowWarning(string message)
+        {
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                NotificationInfoBar.Title = "⚠️ Uyarı";
+                NotificationInfoBar.Message = message;
+                NotificationInfoBar.Severity = InfoBarSeverity.Warning;
+                NotificationInfoBar.IsOpen = true;
+            });
         }
 
         private async System.Threading.Tasks.Task ShowProfileEditorDialog(RdpProfile profileToEdit)

@@ -40,6 +40,16 @@
                          Text="{x:Bind ViewModel.Domain, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
             </StackPanel>
 
+            <!-- Grup -->
+            <StackPanel Spacing="8">
+                <TextBlock Text="Grup" FontWeight="SemiBold"/>
+                <ComboBox ItemsSource="{x:Bind ViewModel.AvailableGroups, Mode=OneWay}"
+                          SelectedItem="{x:Bind ViewModel.Group, Mode=TwoWay}"
+                          IsEditable="True"
+                          HorizontalAlignment="Stretch"
+                          PlaceholderText="Grup seçin veya yeni grup adı yazın"/>
+            </StackPanel>
+
             <!-- Çözünürlük -->
             <StackPanel Spacing="8">
                 <TextBlock Text="Ekran Çözünürlüğü" FontWeight="SemiBold"/>

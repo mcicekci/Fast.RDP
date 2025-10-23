@@ -20,7 +20,25 @@ namespace FastRDP.Services
 
         public SettingsService(string dataPath = "Data")
         {
-            _dataPath = dataPath;
+            // Assembly'nin bulunduğu dizini al (exe dosyasının yanı)
+            var assemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
+            var appDirectory = Path.GetDirectoryName(assemblyLocation);
+            
+            Console.WriteLine($"Assembly dizini: {appDirectory}");
+            Console.WriteLine($"Çalışma dizini: {Directory.GetCurrentDirectory()}");
+            
+            // Relative path ise, uygulama dizinine göre absolute path oluştur
+            if (!Path.IsPathRooted(dataPath))
+            {
+                _dataPath = Path.Combine(appDirectory, dataPath);
+            }
+            else
+            {
+                _dataPath = dataPath;
+            }
+            
+            Console.WriteLine($"SettingsService başlatıldı. Data klasörü: {_dataPath}");
+            
             _jsonOptions = new JsonSerializerOptions
             {
                 WriteIndented = true,
@@ -35,9 +53,19 @@ namespace FastRDP.Services
         /// </summary>
         private void EnsureDataPathExists()
         {
-            if (!Directory.Exists(_dataPath))
+            try
             {
-                Directory.CreateDirectory(_dataPath);
+                if (!Directory.Exists(_dataPath))
+                {
+                    Directory.CreateDirectory(_dataPath);
+                    Console.WriteLine($"Data klasörü oluşturuldu: {Path.GetFullPath(_dataPath)}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Data klasörü oluşturma hatası: {ex.Message}");
+                Console.WriteLine($"Hedef yol: {_dataPath}");
+                throw;
             }
         }
 
@@ -53,6 +81,17 @@ namespace FastRDP.Services
             if (!File.Exists(filePath))
             {
                 var defaultSettings = new AppSettings();
+                // RdpFolder'ı absolute path yap
+                var profilesPath = Path.Combine(_dataPath, "profiles");
+                defaultSettings.RdpFolder = profilesPath;
+                
+                // Klasörü oluştur
+                if (!Directory.Exists(profilesPath))
+                {
+                    Directory.CreateDirectory(profilesPath);
+                    Console.WriteLine($"Profiles klasörü oluşturuldu: {Path.GetFullPath(profilesPath)}");
+                }
+                
                 await SaveSettingsAsync(defaultSettings);
                 return defaultSettings;
             }
@@ -60,7 +99,52 @@ namespace FastRDP.Services
             try
             {
                 var json = await File.ReadAllTextAsync(filePath);
-                return JsonSerializer.Deserialize<AppSettings>(json, _jsonOptions) ?? new AppSettings();
+                var settings = JsonSerializer.Deserialize<AppSettings>(json, _jsonOptions) ?? new AppSettings();
+                
+                // RdpFolder boş ise varsayılan yolu kullan
+                if (string.IsNullOrWhiteSpace(settings.RdpFolder))
+                {
+                    var profilesPath = Path.Combine(_dataPath, "profiles");
+                    settings.RdpFolder = profilesPath;
+                    Console.WriteLine($"RDP klasörü boş, varsayılan yol kullanılıyor: {profilesPath}");
+                    
+                    // Klasörü oluştur
+                    if (!Directory.Exists(profilesPath))
+                    {
+                        Directory.CreateDirectory(profilesPath);
+                        Console.WriteLine($"Varsayılan profiles klasörü oluşturuldu: {Path.GetFullPath(profilesPath)}");
+                    }
+                    
+                    // Ayarları güncelle
+                    await SaveSettingsAsync(settings);
+                }
+                else
+                {
+                    // RdpFolder relative ise absolute yap
+                    if (!Path.IsPathRooted(settings.RdpFolder))
+                    {
+                        var assemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
+                        var appDirectory = Path.GetDirectoryName(assemblyLocation);
+                        settings.RdpFolder = Path.Combine(appDirectory, settings.RdpFolder);
+                        Console.WriteLine($"RDP klasörü absolute path'e çevrildi: {settings.RdpFolder}");
+                    }
+                    
+                    // RDP klasörünün varlığını kontrol et
+                    if (!Directory.Exists(settings.RdpFolder))
+                    {
+                        try
+                        {
+                            Directory.CreateDirectory(settings.RdpFolder);
+                            Console.WriteLine($"RDP klasörü oluşturuldu: {settings.RdpFolder}");
+                        }
+                        catch (Exception dirEx)
+                        {
+                            Console.WriteLine($"RDP klasörü oluşturulamadı: {dirEx.Message}");
+                        }
+                    }
+                }
+                
+                return settings;
             }
             catch (Exception ex)
             {
@@ -139,6 +223,14 @@ namespace FastRDP.Services
         public List<RdpProfile> LoadProfiles()
         {
             return Task.Run(() => LoadProfilesAsync()).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Tüm profilleri getirir
+        /// </summary>
+        public List<RdpProfile> GetAllProfiles()
+        {
+            return LoadProfiles();
         }
 
         /// <summary>

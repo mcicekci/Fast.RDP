@@ -8,12 +8,36 @@
     xmlns:models="using:FastRDP.Models"
     mc:Ignorable="d">
 
+    <UserControl.Resources>
+        <CollectionViewSource x:Name="GroupedProfiles" 
+                              IsSourceGrouped="True"
+                              Source="{x:Bind GroupedProfilesList, Mode=OneWay}"/>
+    </UserControl.Resources>
+
     <Grid>
-        <ListView ItemsSource="{x:Bind Profiles, Mode=OneWay}"
+        <ListView ItemsSource="{x:Bind GroupedProfiles.View, Mode=OneWay}"
                   SelectionMode="Single"
                   IsItemClickEnabled="True"
                   ItemClick="OnItemClick">
             
+            <ListView.GroupStyle>
+                <GroupStyle>
+                    <GroupStyle.HeaderTemplate>
+                        <DataTemplate>
+                            <Grid Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                  Padding="12,8"
+                                  Margin="0,8,0,4"
+                                  CornerRadius="4">
+                                <TextBlock Text="{Binding Key}" 
+                                           FontWeight="SemiBold" 
+                                           FontSize="16"
+                                           Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+                            </Grid>
+                        </DataTemplate>
+                    </GroupStyle.HeaderTemplate>
+                </GroupStyle>
+            </ListView.GroupStyle>
+
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="models:RdpProfile">
                     <Grid Padding="12,8" ColumnSpacing="12">
