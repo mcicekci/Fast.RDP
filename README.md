@@ -245,6 +245,18 @@ FastRDP/
 - [ ] MSIX paketleme
 - [ ] Microsoft Store yayını
 
+### Sprint 5: İyileştirmeler ve Yeni Özellikler (Planlanan)
+- [ ] Arama fonksiyonu düzeltmesi
+- [ ] Profile alanında gruplar arası dropdown
+- [ ] Profile ismi değiştirme özelliği
+- [ ] Favorileri ayrı bir alanda gösterme
+- [ ] VNC protokol desteği
+- [ ] Yedekleme sırasında profilleri ZIP olarak kaydetme
+
+## 🐛 Bilinen Sorunlar
+
+- **Arama Fonksiyonu**: Arama özelliğinde düzeltme gerekiyor
+
 ## 🤝 Katkıda Bulunma
 
 Katkılarınızı bekliyoruz! Lütfen aşağıdaki adımları takip edin:

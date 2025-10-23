@@ -2,7 +2,7 @@
 
 Tüm önemli değişiklikler bu dosyada belgelenecektir.
 
-## [Unreleased] - 2025-10-22
+## [0.1-beta-1] - 2025-10-23
 
 ### Eklenen Özellikler ✨
 

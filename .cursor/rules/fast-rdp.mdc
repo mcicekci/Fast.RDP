@@ -1,0 +1,17 @@
+---
+alwaysApply: true
+---
+
+Uygulamanın github adresi : https://github.com/mcicekci/Fast.RDP
+Fast Rdp diye bir takım yok.
+amaç kolayca rdp yabilmek.
+cok fazla mark down dosya olusturma. sadece readme yeterli.
+acik kaynak kodlu bir proje . kodu buna gore yaz.
+
+iletism adresi vs yazma iletisim icin github adresi kullanilsin
+
+yapilacak isler @todo.md den takip edilecek
+
+
+- README.md yol haritası ile senkronize tut
+- Her tamamlanan özellik için CHANGELOG.md güncelle
